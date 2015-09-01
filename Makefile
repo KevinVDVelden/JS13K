@@ -28,10 +28,14 @@ ugly.js: min.js
 	uglifyjs --source-map ugly.map --in-source-map min.map $< -o $@ --screw-ie8 -m sort,toplevel -c unsafe,drop_console
 
 info: $(ZIP) $(MINIFIED_JS_FILES)
-	wc $(UGLY_JS_FILES)
-	wc $(MINIFIED_JS_FILES)
-	wc $(JS_FILES)
-	ls -l $(ZIP)
+	@echo Uglified JS is `cat $(UGLY_JS_FILES)|wc -c` bytes.
+	@echo Minified JS is `cat $(MINIFIED_JS_FILES)|wc -c` bytes.
+	@echo Unminified JS files:
+	@wc -c $(JS_FILES)
+	@echo Extra js files:
+	@wc -c $(EXTRA_FILES)
+	@echo Final compression:
+	@ls -l $(ZIP)
 
 clean:
 	@rm -vf $(MINIFIED_JS_FILES)

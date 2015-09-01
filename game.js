@@ -12,8 +12,6 @@
 canvas = document.body.children[0];
 
 gl = canvas.getContext('webgl');
-/** @const */ camOffsetX = 12;
-/** @const */ camOffsetY = 12;
 
 loadingCount = 0;
 loadingStage = 0;
@@ -36,8 +34,8 @@ shaders[TILE_SHADER]=function(){return [[getAjax('tiles.fs'),gl.FRAGMENT_SHADER]
 
 uv = [ [0,0], [1,0] ];
 
-/**@const */ eps = 0.001;
-for ( var i in uv ) uv[i] = [ uv[i][0]*0.25+eps, uv[i][1]*0.25+eps, uv[i][0]*0.25-eps+0.25, uv[i][1]*0.25-eps+0.25 ];
+/**@const */ EPSILON = 0.001;
+for ( var i in uv ) uv[i] = [ uv[i][0]*0.25+EPSILON, uv[i][1]*0.25+EPSILON, uv[i][0]*0.25-EPSILON+0.25, uv[i][1]*0.25-EPSILON+0.25 ];
 
 window.addEventListener('keyup', function(event) { lastKeys[event.keyCode]=keys[event.keyCode]; keys[event.keyCode] = -scene.time; }, false);
 window.addEventListener('keydown', function(event) { lastKeys[event.keyCode]=keys[event.keyCode]; keys[event.keyCode] = scene.time; }, false);
@@ -89,9 +87,17 @@ scene.render = function( time ) {
             }
 
             function test(x,y,i,r,g,b) {
-                if ( abs( ( 64 - x ) - y ) < 6 || abs( x - y ) < 6 || ( x > 15 && x < 48 && y > 15 && y < 48 ) ) {
+                if ( Math.abs( ( 64 - x ) - y ) < 6 || Math.abs( x - y ) < 6 || ( x > 15 && x < 48 && y > 15 && y < 48 ) ) {
                     set(i,r,g,b);
                 }
+            }
+
+            function addNoise(i, strength) {
+                n = ( ( rnd.rand() - 0.5 ) * strength ) | 0;
+                d[i+0]+=n;
+                d[i+1]+=n;
+                d[i+2]+=n;
+                d[i+3]+=n;
             }
 
             rnd = lcg();rnd.setSeed(0);
@@ -101,11 +107,7 @@ scene.render = function( time ) {
                 test(x-1,y-2,i,203,207,211)
                 test(x,y,i,173,177,181)
 
-                n = ( ( rnd.rand() - 0.5 ) * 10 ) | 0;
-                d[i+0]+=n;
-                d[i+1]+=n;
-                d[i+2]+=n;
-                d[i+3]+=n;
+                addNoise(i,10);
             } );
 
             ctx.putImageData( id, 0, 0 );
@@ -114,6 +116,32 @@ scene.render = function( time ) {
                 set( i, x < 2 ? 255 : 0, y < 2 ? 255 : 30, 30 );
             } );
             ctx.putImageData( id, 64, 0 );
+
+            colors = [
+                [0.1,0.9,1.0,18*18,12], [0.2,1.0,0.8,20*20,16], [0.1,0.5,0.8,16*16,12],
+                [1.0,0.4,0.1,18*18,12], [0.8,0.5,0.2,20*20,16], [0.8,0.2,0.1,16*16,12],
+            ];
+            for ( var i in colors ) {
+                color = colors[i];
+
+                runImage( function( x,y,i ) {
+                    _x = Math.abs(x - 32);
+                    _y = y-30;
+                    var _in = ( y > 4 && y < 60 ) ? ( Math.max( y>20?color[4]-_x:0, ( color[3] - (_x*_x+_y*_y) ) * 0.9 ) ): -1 ;
+                    var colorStrength = _in * 10 + 30;
+
+                    if (colorStrength>255) colorStrength = Math.sqrt(colorStrength - 255) * 10 + 255;
+
+                    set( i, color[0] * colorStrength, color[1] * colorStrength, color[2] * colorStrength, _in > 0 ? 255 : 0 );
+                    if ( _in > 0 ) {
+                        if ( ( y > 20 && y < 24 && _x > 5 && _x < 9 ) || ( y == 35 && _x < 6 ) ) {
+                            set( i, 0,0,0, 255 );
+                        }
+                        addNoise( i , 35 );
+                    }
+                } );
+                ctx.putImageData( id, 64*(i%4), 64*((i/4+1)|0) );
+            }
         } break;
         case 9: {
             globals.atlas = gl.createTexture();

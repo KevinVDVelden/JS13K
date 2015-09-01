@@ -57,7 +57,3 @@ var lcg = (function() {
   };
 });
 
-abs=Math.abs
-min=Math.min
-sin=Math.sin
-

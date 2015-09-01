@@ -46,8 +46,10 @@ function mouse(event) {
         scene.viewInv = M4x4.inverse( scene.view );
     }
 
-    v = [ event.pageX / window.innerWidth * -2 + 1, event.pageY / window.innerHeight * -2 + 1, 1, 1 ];
+    v = [ event.pageX / window.innerWidth * 2 - 1, event.pageY / window.innerHeight * -2 + 1, 1, 1 ];
     v = M4x4.multV( scene.viewInv, v );
+
+    v[0] = -v[0];
 
     x = ( ( v[0] / TILE_WIDTH ) + ( v[1] / TILE_HEIGHT ) );
     y = ( ( v[1] / TILE_HEIGHT ) - ( v[0] / TILE_WIDTH ) );
@@ -56,8 +58,6 @@ function mouse(event) {
     y = Math.round(y);
 
     if (event.type=='mousedown') {
-        console.log( x, y )
-
         var i = x*MAP_SIZE + y; 
         scene.gameMap[i] = 2 - scene.gameMap[i];
         scene.updateBuffer();
@@ -111,7 +111,7 @@ scene.render = function( time ) {
             ctx.putImageData( id, 0, 0 );
 
             runImage( function( x,y,i ) {
-                set(i,(x%63)==0?255:30,(y%63)==0?255:30,(x>=62||y>=62)?255:0);
+                set( i, x < 2 ? 255 : 0, y < 2 ? 255 : 30, 30 );
             } );
             ctx.putImageData( id, 64, 0 );
         } break;

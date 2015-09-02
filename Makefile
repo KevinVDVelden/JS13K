@@ -6,7 +6,9 @@ ZIP=js13k.zip
 ZIP_DIRECTORY=js13k
 TMP_DIRECTORY=tmp
 
-EXTRA_FILES=$(shell find -name \*.fs|grep -v $(ZIP_DIRECTORY)) $(shell find -name \*.vs|grep -v $(ZIP_DIRECTORY))
+EXTRA_FILES=$(shell find -name \*.fs|grep -v $(ZIP_DIRECTORY))
+EXTRA_FILES+=$(shell find -name \*.vs|grep -v $(ZIP_DIRECTORY))
+EXTRA_FILES+=intro.html
 
 .PHONY: dist all info
 all: $(UGLY_JS_FILES)
@@ -37,7 +39,7 @@ info: $(ZIP) $(MINIFIED_JS_FILES)
 	@echo Uglified JS is `cat $(UGLY_JS_FILES)|wc -c` bytes.
 	@echo Unminified JS files:
 	@wc -c $(JS_FILES)
-	@echo Extra js files:
+	@echo Extra non-js files:
 	@wc -c $(EXTRA_FILES)
 	@echo Final compression:
 	@ls -l $(ZIP)

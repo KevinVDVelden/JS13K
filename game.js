@@ -10,6 +10,8 @@
 /**@const */ tilesPerMS = 12 / 1000;
 
 canvas = document.body.children[0];
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
 gl = canvas.getContext('webgl');
 
@@ -100,6 +102,7 @@ scene.render = function( time ) {
                 d[i+3]+=n;
             }
 
+            //Floor
             rnd = lcg();rnd.setSeed(0);
             runImage( function( x,y,i ) {
                 set( i,195,195,204 )
@@ -112,15 +115,19 @@ scene.render = function( time ) {
 
             ctx.putImageData( id, 0, 0 );
 
+            //VR tile
             runImage( function( x,y,i ) {
                 set( i, x < 2 ? 255 : 0, y < 2 ? 255 : 30, 30 );
             } );
             ctx.putImageData( id, 64, 0 );
 
+            //Wall
             runImage( function( x,y,i ) {
-                set(i,173,177,181);
-                if ( y > 42 && y < 51 ) {
-                    var c = y - 44 == 4 - ( x % 4 );
+                set(i,173-y,177-y,181-y);
+
+                if ( y > 41 && y < 51 ) {
+                    var c = ( y - 44 ) - ( Math.sin( x * 0.5 ) * 3 ) | 0;
+                    c = c > 0 && c < 3;
                     set( i, c?225:10, c?225:40, c?225:185 );
                     addNoise( i, 50 );
                 }
@@ -132,6 +139,7 @@ scene.render = function( time ) {
                 [0.1,0.9,1.0,18*18,12], [0.2,1.0,0.8,20*20,16], [0.1,0.5,0.8,16*16,12],
                 [1.0,0.4,0.1,18*18,12], [0.8,0.5,0.2,20*20,16], [0.8,0.2,0.1,16*16,12],
             ];
+            //Characters
             for ( var i in colors ) {
                 color = colors[i];
 
@@ -159,7 +167,7 @@ scene.render = function( time ) {
             gl.bindTexture( gl.TEXTURE_2D, globals.atlas );
             gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, ctx.getImageData(0,0,256,256) );
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             gl.generateMipmap(gl.TEXTURE_2D);
             gl.bindTexture(gl.TEXTURE_2D, null);
 
@@ -268,29 +276,31 @@ menu = bindRecursive({
                 _x = ( x - y ) * 0.5;
                 _y = ( x + y ) * 0.25;
 
-                hh = this.gameMap[ i + MAP_SIZE + 1 ] == 0 ? 0.5 : 0;
+                hh = this.gameMap[ i + MAP_SIZE + 1 ] == 0;
+                uvHH = hh ? 0 : (2/3)/4;
+                hh = hh ? 0.5 : 0;
                 if ( this.gameMap[i + MAP_SIZE ] == 0 ) {
                     _uv = uv[2];
                     wallBuffer = [
-                            _x-0.5,  _y,      0,  _uv[0], _uv[1], //B
-                            _x,      _y+0.25, 0,  _uv[0], _uv[1], //A
-                            _x-0.5,  _y+0.25+hh, 0,  _uv[2], _uv[3], //C
+                            _x-0.5,  _y,        0,  _uv[0], _uv[3], //B
+                            _x,      _y+0.25,   0,  _uv[2], _uv[3], //A
+                            _x-0.5,  _y+0.25+hh,0,  _uv[0], _uv[1]+uvHH, //B+
 
-                            _x-0.5,  _y+0.25+hh, 0,  _uv[2], _uv[3], //C
-                            _x,      _y+0.25, 0,  _uv[0], _uv[1], //A
-                            _x,      _y+0.5+hh,    0,  _uv[0], _uv[3], //B
+                            _x-0.5,  _y+0.25+hh,0,  _uv[0], _uv[1]+uvHH, //C
+                            _x,      _y+0.25,   0,  _uv[2], _uv[3], //A
+                            _x,      _y+0.5+hh, 0,  _uv[2], _uv[1]+uvHH, //A+
                     ].concat( wallBuffer );
                 }
                 if ( this.gameMap[i + 1] == 0 ) {
                     _uv = uv[2];
                     wallBuffer = [
-                            _x+0.5,  _y,      0,  _uv[0], _uv[1], //B
-                            _x,      _y+0.25, 0,  _uv[0], _uv[1], //A
-                            _x+0.5,  _y+0.25+hh, 0,  _uv[2], _uv[3], //C
+                            _x+0.5,  _y,        0,  _uv[2], _uv[3], //B
+                            _x,      _y+0.25,   0,  _uv[0], _uv[3], //A
+                            _x+0.5,  _y+0.25+hh,0,  _uv[2], _uv[1]+uvHH, //C
 
-                            _x+0.5,  _y+0.25+hh, 0,  _uv[2], _uv[3], //C
-                            _x,      _y+0.25, 0,  _uv[0], _uv[1], //A
-                            _x,      _y+0.5+hh,    0,  _uv[0], _uv[3], //B
+                            _x+0.5,  _y+0.25+hh,0,  _uv[2], _uv[1]+uvHH, //C
+                            _x,      _y+0.25,   0,  _uv[0], _uv[3], //A
+                            _x,      _y+0.5+hh, 0,  _uv[0], _uv[1]+uvHH, //B
                     ].concat( wallBuffer );
                 }
 
@@ -309,7 +319,7 @@ menu = bindRecursive({
                 _uv = uv[this.gameMap[i]-1];
                 gameBuffer = gameBuffer.concat( [
                         _x-0.5,  _y,      0,  _uv[0], _uv[3], //B
-                        _x,      _y+0.25, 0,  _uv[0], _uv[1], //A
+                        _x,      _y+0.25, 0,  _uv[2], _uv[3], //A
                         _x+0.5,  _y,      0,  _uv[2], _uv[1], //C
 
                         _x+0.5,  _y,      0,  _uv[2], _uv[1], //C

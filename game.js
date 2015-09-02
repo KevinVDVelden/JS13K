@@ -73,7 +73,33 @@ window.addEventListener('mousedown', mouse);
 
 scene.render = function( time ) {
     switch ( loadingStage ) {
+        case 0: {
+            getAjax( 'intro.html' );
+        } break;
         case 1: {
+            if ( loadingCount == 0 ) {
+                document.body.children[3].innerHTML = data['intro.html'];
+            } else {
+                return;
+            }
+        } break;
+        case 12: {
+            var canvas = document.body.children[2];
+            var smallCtx = canvas.getContext('2d');
+
+            var imgs = document.getElementsByTagName('img');
+            for ( var i = 0; i < imgs.length; i++ ) {
+                var img = imgs[i];
+                img.style.width='64px';
+                img.style.height='64px';
+
+                var off = img.attributes.offset.value.split(' ');
+                smallCtx.drawImage( cv, off[0], off[1], 64, 64, 0, 0, 64, 64 );
+
+                img.style.backgroundImage='url("'+canvas.toDataURL()+'")';
+            }
+        } break;
+        case 11: {
             id = ctx.createImageData( 64, 64 );
             d=id.data;
             function runImage(cb) {
@@ -295,10 +321,14 @@ onFrame = function(t) {
     scene.lastTime = scene.time;
     scene.time = t;
 
+    /*
     try{ scene.render(t);}catch(v){
         requestAnimationFrame(onFrame);
         throw v;
     }
+    */
+    scene.render(t);
+
     requestAnimationFrame(onFrame);
 
     if (scene.next) {

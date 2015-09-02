@@ -34,7 +34,12 @@ shaders[BACKGROUND_SHADER]=function(){return [[getAjax('bg.fs'),gl.FRAGMENT_SHAD
 var TILE_SHADER=1;
 shaders[TILE_SHADER]=function(){return [[getAjax('tiles.fs'),gl.FRAGMENT_SHADER],[getAjax('tiles.vs'),gl.VERTEX_SHADER]];}
 
-uv = [ [0,0], [1,0], [2,0] ];
+/**@const */ TILE_FLOOR = 0;
+/**@const */ TILE_WALL = 2;
+/**@const */ TILE_ENTRANCE = 3;
+/**@const */ TILE_EXIT = 4;
+
+uv = [ [0,0], [1,0], [2,0], [0,1], [0,2] ];
 
 /**@const */ EPSILON = 0.001;
 for ( var i in uv ) uv[i] = [ uv[i][0]*0.25+EPSILON, uv[i][1]*0.25+EPSILON, uv[i][0]*0.25-EPSILON+0.25, uv[i][1]*0.25-EPSILON+0.25 ];
@@ -59,7 +64,7 @@ function mouse(event) {
 
     if (event.type=='mousedown') {
         var i = x*MAP_SIZE + y; 
-        scene.gameMap[i] = 2 - scene.gameMap[i];
+        scene.gameMap[i] = 1 - scene.gameMap[i];
         scene.updateBuffer();
     }
 };
@@ -88,12 +93,6 @@ scene.render = function( time ) {
                 d[i+3] = a;
             }
 
-            function test(x,y,i,r,g,b) {
-                if ( Math.abs( ( 64 - x ) - y ) < 6 || Math.abs( x - y ) < 6 || ( x > 15 && x < 48 && y > 15 && y < 48 ) ) {
-                    set(i,r,g,b);
-                }
-            }
-
             function addNoise(i, strength) {
                 n = ( ( rnd.rand() - 0.5 ) * strength ) | 0;
                 d[i+0]+=n;
@@ -102,18 +101,75 @@ scene.render = function( time ) {
                 d[i+3]+=n;
             }
 
+            floorCrossWidth = 6;
+            floorSquareDistance = 15;
+            function test(x,y,i,r,g,b) {
+                if ( Math.abs( ( 64 - x ) - y ) < floorCrossWidth ||
+                        Math.abs( x - y ) < floorCrossWidth ||
+                        ( x > floorSquareDistance && x < (64-floorSquareDistance) && y > floorSquareDistance && y < (64-floorSquareDistance) ) ) {
+                    set(i,r,g,b);
+                }
+            }
+
             //Floor
             rnd = lcg();rnd.setSeed(0);
-            runImage( function( x,y,i ) {
-                set( i,195,195,204 )
-                test(x+1,y+2,i,123,127,131)
-                test(x-1,y-2,i,203,207,211)
-                test(x,y,i,173,177,181)
+            floorI = 0;
+            function floor( r1,g1,b1, r2,g2,b2, test, f ) {
+                runImage( function( x,y,i ) {
+                    set( i,r1,g1,b1 );
+                    test(x+1,y+2,i,123,127,131);
+                    test(x-1,y-2,i,203,207,211);
+                    test(x,y,i,r2,g2,b2);
 
-                addNoise(i,10);
-            } );
+                    if (f) f(x,y,i);
 
-            ctx.putImageData( id, 0, 0 );
+                    addNoise(i,10);
+                } );
+
+                var x = floorI%8 * 64;
+                var y = ((floorI/8)|0) * 64;
+                ctx.putImageData( id, x, y );
+                floorI += 1;
+            }
+            floor( 195,195,204, 173,177,181, test );
+
+            floorI += 2;
+            floorCrossWidth = 3;
+            floorSquareDistance = 16;
+            function test2(x,y,i,r,g,b) {
+                if ( Math.abs( ( 64 - x ) - y ) < floorCrossWidth ||
+                        Math.abs( x - y ) < floorCrossWidth ||
+                        ( (y-32)*(y-32)+(x-32)*(x-32) < floorSquareDistance*floorSquareDistance ) ) {
+                    set(i,r,g,b);
+                }
+            }
+            floor( 195,195,204, 103,207,191, test2 ); //Tile entrance
+            floor( 195,195,204, 207,103,101, test2 ); //Tile exit
+            floor( 195,195,204, 50,50,50, test2 ); //Disabled porter
+            floorSquareDistance = 18;
+            function test3(x,y,i,r,g,b) {
+                var c = Math.round( Math.sqrt( (y-32)*(y-32)+(x-32)*(x-32) ) );
+                if ( ( ( Math.abs( ( 64 - x ) - y ) < floorCrossWidth || Math.abs( x - y ) < floorCrossWidth ) && c > floorSquareDistance-1 ) ||
+                        ( c < floorSquareDistance && c % 8 < 5 ) ) {
+                    set(i,r,g,b);
+                }
+            }
+            floor( 195,195,204, 103,207,191, test3 ); //Freeze trap
+            floor( 195,195,204, 207,103,101, test3 ); //Alarm trap
+            floor( 195,195,204, 207,193,101, test3 ); //Zap trap
+            floor( 195,195,204, 50,50,50, test3 ); //Disabled trap
+            floorSquareDistance = 18;
+            function test4(x,y,i,r,g,b) {
+                var c = Math.round( Math.abs(y-32)+Math.abs(x-32) );
+                if ( ( ( Math.abs( ( 64 - x ) - y ) < floorCrossWidth || Math.abs( x - y ) < floorCrossWidth ) && c > floorSquareDistance-1 ) ||
+                        ( c < floorSquareDistance && c % 12 < 6 ) ) {
+                    set(i,r,g,b);
+                }
+            }
+            floor( 195,195,204, 103,207,191, test4 ); //?? trap
+            floor( 195,195,204, 207,103,101, test4 ); //?? trap
+            floor( 195,195,204, 207,193,101, test4 ); //?? trap
+            floor( 195,195,204, 50,50,50, test4 ); //Disabled trap type 2
 
             //VR tile
             runImage( function( x,y,i ) {
@@ -159,10 +215,10 @@ scene.render = function( time ) {
                         addNoise( i , 35 );
                     }
                 } );
-                ctx.putImageData( id, 64*(i%4), 64*((i/4+1)|0) );
+                ctx.putImageData( id, 64*(i%8), 192+64*((i/8)|0) );
             }
         } break;
-        case 9: {
+        case 20: {
             globals.atlas = gl.createTexture();
             gl.bindTexture( gl.TEXTURE_2D, globals.atlas );
             gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, ctx.getImageData(0,0,256,256) );
@@ -174,10 +230,10 @@ scene.render = function( time ) {
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, globals.atlas);
         } break;
-        case 10: {
+        case 30: {
             for ( key in shaders ) shaders[key] = shaders[key]();
         } break;
-        case 11: {
+        case 31: {
             if ( loadingCount <= 0 ) {
                 //Init shaders
                 for ( var i = 0; shaders[i]; i++ ) {
@@ -208,12 +264,18 @@ scene.render = function( time ) {
                 return;
             }
         } break;
-        case 20: {
+        case 40: {
             globals.fullScreenBuffer = getArrayBuf([-1, -1, 0, 1, -1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1, 1, 0]);
         } break;
-        case 30: {
+        case 50: {
             scene.next = menu;
         } break;
+        default: {
+            console.log( 'Skipping state ' + loadingStage );
+            loadingStage += 1;
+            scene.render();
+            return;
+        }
     }
 
     loadingStage += 1;
@@ -329,7 +391,8 @@ menu = bindRecursive({
             }
         }
 
-        this.gameBuffer = getArrayBuf( gameBuffer.concat( wallBuffer ) );
+        this.gameBuffer = getArrayBuf( gameBuffer );
+        this.wallBuffer = getArrayBuf( wallBuffer );
     },
 
     setCamera:function(x,y) {
@@ -345,12 +408,6 @@ menu = bindRecursive({
         for ( ;gameMap.length<MAP_SIZE*MAP_SIZE;gameMap[gameMap.length]=0 ) {}
 
         this.gameMap = gameMap;
-
-        for (var y = 64-12; y < 64+12; y+=1) {
-            for (var x = 64-12; x < 64+12; x+=1) {
-                gameMap[y*MAP_SIZE+x] = 2;
-            }
-        }
         for(var x=0;x<MAP_SIZE;x+=6)
         for(var y=0;y<MAP_SIZE;y+=7)
         gameMap[y*MAP_SIZE+x]=1;
@@ -384,29 +441,17 @@ menu = bindRecursive({
 
         this.view = M4x4.translate3(-this.camX,-this.camY/4,-10, this.perspective );
         this.viewInv = null;
+        this.mvc = M4x4.flip(this.view);
 
-        gl.useProgram( shaders[BACKGROUND_SHADER][0] );
-
-        setUniforms(shaders[BACKGROUND_SHADER][0], this.uniforms);
-        setUniforms(shaders[BACKGROUND_SHADER][0], {time:time*0.001});
-
+        setShader( BACKGROUND_SHADER );
         gl.bindBuffer( gl.ARRAY_BUFFER, globals.fullScreenBuffer );
         gl.vertexAttribPointer( shaders[BACKGROUND_SHADER][1], 3, gl.FLOAT, false, 0, 0 );
-
         gl.drawArrays( gl.TRIANGLES, 0, 6 );
 
-
-        gl.useProgram( shaders[TILE_SHADER][0] );
-
-        setUniforms(shaders[TILE_SHADER][0], this.uniforms);
-        this.mvc = M4x4.flip(this.view);
-        setUniforms(shaders[TILE_SHADER][0], {time:time*0.001,'mvc':this.mvc});
-
-        gl.bindBuffer( gl.ARRAY_BUFFER, this.gameBuffer );
-        gl.vertexAttribPointer( shaders[TILE_SHADER][1], 3, gl.FLOAT, false, 5*4, 0 );
-        gl.vertexAttribPointer( shaders[TILE_SHADER][2], 2, gl.FLOAT, false, 5*4, 3*4 );
-
-        gl.drawArrays( gl.TRIANGLES, 0, this.gameBuffer.length / 5 );
+        setShader( TILE_SHADER );
+        draw( this.gameBuffer );
+        if ( this.entBuffer ) draw( this.entBuffer );
+        draw( this.wallBuffer );
 
         if (!this.test) {
             this.test=true;

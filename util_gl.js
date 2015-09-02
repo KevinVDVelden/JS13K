@@ -28,3 +28,18 @@ function getArrayBuf( buffer ) {
 }
 
 
+function setShader( shaderI ) {
+    gl.useProgram( shaders[shaderI][0] );
+
+    setUniforms(shaders[shaderI][0], scene.uniforms);
+    setUniforms(shaders[shaderI][0], {'time':scene.time*0.001, 'mvc':scene.mvc});
+}
+
+function draw( buf ) {
+    if ( buf.length > 0 ) {
+        gl.bindBuffer( gl.ARRAY_BUFFER, buf );
+        gl.vertexAttribPointer( shaders[TILE_SHADER][1], 3, gl.FLOAT, false, 5*4, 0 );
+        gl.vertexAttribPointer( shaders[TILE_SHADER][2], 2, gl.FLOAT, false, 5*4, 3*4 );
+        gl.drawArrays( gl.TRIANGLES, 0, buf.length / 5 );
+    }
+}

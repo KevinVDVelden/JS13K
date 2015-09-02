@@ -63,7 +63,7 @@ function mouse(event) {
     y = Math.round(y);
 
     if (event.type=='mousedown') {
-        var i = x*MAP_SIZE + y; 
+        var i = x*MAP_SIZE + y;
         scene.gameMap[i] = 1 - scene.gameMap[i];
         scene.updateBuffer();
     }
@@ -94,10 +94,15 @@ scene.render = function( time ) {
                 img.style.height='64px';
 
                 var off = img.attributes.offset.value.split(' ');
+                smallCtx.clearRect(0,0,64,64);
                 smallCtx.drawImage( cv, off[0], off[1], 64, 64, 0, 0, 64, 64 );
 
                 img.style.backgroundImage='url("'+canvas.toDataURL()+'")';
             }
+            smallCtx.drawImage( cv, 0, 128, 64, 64, 0, 0, 64, 64 );
+
+            document.body.children[3].style.backgroundImage='url("'+canvas.toDataURL()+'")';
+            document.body.children[3].style['backgroundSize']='30% 100%';
         } break;
         case 11: {
             id = ctx.createImageData( 64, 64 );
@@ -217,6 +222,13 @@ scene.render = function( time ) {
             } );
             ctx.putImageData( id, 128, 0 );
 
+            //Wall 2
+            runImage( function( x,y,i ) {
+                set(i,173-y,177-y,181-y);
+                addNoise( i, 10 );
+            } );
+            ctx.putImageData( id, 0, 128 );
+
             colors = [
                 [0.1,0.9,1.0,18*18,12], [0.2,1.0,0.8,20*20,16], [0.1,0.5,0.8,16*16,12],
                 [1.0,0.4,0.1,18*18,12], [0.8,0.5,0.2,20*20,16], [0.8,0.2,0.1,16*16,12],
@@ -269,8 +281,8 @@ scene.render = function( time ) {
                         gl.shaderSource(shader, data[ shaders[i][j][0] ] );
                         gl.compileShader(shader);
 
-                        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {  
-                            console.log("An error occurred compiling the shaders: " + gl.getShaderInfoLog(shader));  
+                        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                            console.log("An error occurred compiling the shaders: " + gl.getShaderInfoLog(shader));
                         }
                         gl.attachShader( shaderProgram, shader );
                     }
@@ -407,7 +419,7 @@ menu = bindRecursive({
                  *  B(0,1)  C(1,0)
                  *
                  *      D(1,1)
-                 **/ 
+                 **/
                 _uv = uv[this.gameMap[i]-1];
                 gameBuffer = gameBuffer.concat( [
                         _x-0.5,  _y,      0,  _uv[0], _uv[3], //B

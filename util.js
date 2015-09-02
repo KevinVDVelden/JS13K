@@ -1,5 +1,5 @@
 function getAjax( name ) {
-    key = data.length;
+    key = name;
     data[key]='';
 
     function get(key, name) {

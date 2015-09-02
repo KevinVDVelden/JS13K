@@ -32,7 +32,7 @@ shaders[BACKGROUND_SHADER]=function(){return [[getAjax('bg.fs'),gl.FRAGMENT_SHAD
 var TILE_SHADER=1;
 shaders[TILE_SHADER]=function(){return [[getAjax('tiles.fs'),gl.FRAGMENT_SHADER],[getAjax('tiles.vs'),gl.VERTEX_SHADER]];}
 
-uv = [ [0,0], [1,0] ];
+uv = [ [0,0], [1,0], [2,0] ];
 
 /**@const */ EPSILON = 0.001;
 for ( var i in uv ) uv[i] = [ uv[i][0]*0.25+EPSILON, uv[i][1]*0.25+EPSILON, uv[i][0]*0.25-EPSILON+0.25, uv[i][1]*0.25-EPSILON+0.25 ];
@@ -117,6 +117,17 @@ scene.render = function( time ) {
             } );
             ctx.putImageData( id, 64, 0 );
 
+            runImage( function( x,y,i ) {
+                set(i,173,177,181);
+                if ( y > 42 && y < 51 ) {
+                    var c = y - 44 == 4 - ( x % 4 );
+                    set( i, c?225:10, c?225:40, c?225:185 );
+                    addNoise( i, 50 );
+                }
+                addNoise( i, 10 );
+            } );
+            ctx.putImageData( id, 128, 0 );
+
             colors = [
                 [0.1,0.9,1.0,18*18,12], [0.2,1.0,0.8,20*20,16], [0.1,0.5,0.8,16*16,12],
                 [1.0,0.4,0.1,18*18,12], [0.8,0.5,0.2,20*20,16], [0.8,0.2,0.1,16*16,12],
@@ -127,7 +138,7 @@ scene.render = function( time ) {
                 runImage( function( x,y,i ) {
                     _x = Math.abs(x - 32);
                     _y = y-30;
-                    var _in = ( y > 4 && y < 60 ) ? ( Math.max( y>20?color[4]-_x:0, ( color[3] - (_x*_x+_y*_y) ) * 0.9 ) ): -1 ;
+                    var _in = ( y > 4 && y < 60 ) ? ( Math.max( y > 20 ? color[4] - _x : 0, ( color[3] - (_x*_x+_y*_y) ) * 0.9 ) ): -1 ;
                     var colorStrength = _in * 10 + 30;
 
                     if (colorStrength>255) colorStrength = Math.sqrt(colorStrength - 255) * 10 + 255;
@@ -244,6 +255,7 @@ menu = bindRecursive({
             gl.deleteBuffer( this.gameBuffer[0] );
 
         var gameBuffer = [];
+        var wallBuffer = [];
 
         var i = -1;
         for (var y = 0; y < MAP_SIZE; y++ ) {
@@ -255,6 +267,32 @@ menu = bindRecursive({
 
                 _x = ( x - y ) * 0.5;
                 _y = ( x + y ) * 0.25;
+
+                hh = this.gameMap[ i + MAP_SIZE + 1 ] == 0 ? 0.5 : 0;
+                if ( this.gameMap[i + MAP_SIZE ] == 0 ) {
+                    _uv = uv[2];
+                    wallBuffer = [
+                            _x-0.5,  _y,      0,  _uv[0], _uv[1], //B
+                            _x,      _y+0.25, 0,  _uv[0], _uv[1], //A
+                            _x-0.5,  _y+0.25+hh, 0,  _uv[2], _uv[3], //C
+
+                            _x-0.5,  _y+0.25+hh, 0,  _uv[2], _uv[3], //C
+                            _x,      _y+0.25, 0,  _uv[0], _uv[1], //A
+                            _x,      _y+0.5+hh,    0,  _uv[0], _uv[3], //B
+                    ].concat( wallBuffer );
+                }
+                if ( this.gameMap[i + 1] == 0 ) {
+                    _uv = uv[2];
+                    wallBuffer = [
+                            _x+0.5,  _y,      0,  _uv[0], _uv[1], //B
+                            _x,      _y+0.25, 0,  _uv[0], _uv[1], //A
+                            _x+0.5,  _y+0.25+hh, 0,  _uv[2], _uv[3], //C
+
+                            _x+0.5,  _y+0.25+hh, 0,  _uv[2], _uv[3], //C
+                            _x,      _y+0.25, 0,  _uv[0], _uv[1], //A
+                            _x,      _y+0.5+hh,    0,  _uv[0], _uv[3], //B
+                    ].concat( wallBuffer );
+                }
 
                 /**
                  * A(0,0)   C(1,0)
@@ -281,7 +319,7 @@ menu = bindRecursive({
             }
         }
 
-        this.gameBuffer = getArrayBuf( gameBuffer );
+        this.gameBuffer = getArrayBuf( gameBuffer.concat( wallBuffer ) );
     },
 
     setCamera:function(x,y) {
@@ -336,10 +374,6 @@ menu = bindRecursive({
 
         this.view = M4x4.translate3(-this.camX,-this.camY/4,-10, this.perspective );
         this.viewInv = null;
-//         /( -10, 10, -10/this.aspect, 10/this.aspect, 0.1, 100.0 );
-
-        //this.view = M4x4.makeRo( Math.PI / 180 * -45 );
-        //this.view = this.view.multiply( M4x4.RotationX( Math.PI / 180 * 30 ));
 
         gl.useProgram( shaders[BACKGROUND_SHADER][0] );
 

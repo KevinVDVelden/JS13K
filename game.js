@@ -69,14 +69,54 @@ function mouse(event) {
 window.addEventListener('mousemove', mouse);
 window.addEventListener('mousedown', mouse);
 
+function setScene(name) {
+    document.body.children[3].innerHTML = data[name];
+    if ( name == 'intro.html' ) {
+        var canvas = document.body.children[2];
+        var smallCtx = canvas.getContext('2d');
+
+        var imgs = document.getElementsByTagName('img');
+        for ( var i = 0; i < imgs.length; i++ ) {
+            var img = imgs[i];
+            img.style.width='64px';
+            img.style.height='64px';
+
+            var off = img.attributes.offset.value.split(' ');
+            smallCtx.clearRect(0,0,64,64);
+            smallCtx.drawImage( cv, off[0], off[1], 64, 64, 0, 0, 64, 64 );
+
+            img.style.backgroundImage='url("'+canvas.toDataURL()+'")';
+        }
+        smallCtx.drawImage( cv, 0, 128, 64, 64, 0, 0, 64, 64 );
+
+        document.body.children[3].style.backgroundImage='url("'+canvas.toDataURL()+'")';
+        document.body.children[3].style['backgroundSize']='30% 100%';
+    }
+}
+function startGame(settings) {
+    game.settings = settings;
+    scene.next = game;
+    document.body.children[3].style.display = 'none';
+}
+
 scene.render = function( time ) {
+    if ( loadingStage > 50 ) {
+        setShader( BACKGROUND_SHADER );
+        gl.bindBuffer( gl.ARRAY_BUFFER, globals.fullScreenBuffer );
+        gl.disableVertexAttribArray(1);
+        gl.vertexAttribPointer( shaders[BACKGROUND_SHADER][1], 3, gl.FLOAT, false, 0, 0 );
+        gl.drawArrays( gl.TRIANGLES, 0, 6 );
+    }
+
     switch ( loadingStage ) {
         case 0: {
             getAjax( 'intro.html' );
+            getAjax( 'menu.html' );
+            getAjax( 'about.html' );
         } break;
         case 1: {
             if ( loadingCount == 0 ) {
-                document.body.children[3].innerHTML = data['intro.html'];
+                setScene('menu.html');
             } else {
                 return;
             }
@@ -85,18 +125,6 @@ scene.render = function( time ) {
             var canvas = document.body.children[2];
             var smallCtx = canvas.getContext('2d');
 
-            var imgs = document.getElementsByTagName('img');
-            for ( var i = 0; i < imgs.length; i++ ) {
-                var img = imgs[i];
-                img.style.width='64px';
-                img.style.height='64px';
-
-                var off = img.attributes.offset.value.split(' ');
-                smallCtx.clearRect(0,0,64,64);
-                smallCtx.drawImage( cv, off[0], off[1], 64, 64, 0, 0, 64, 64 );
-
-                img.style.backgroundImage='url("'+canvas.toDataURL()+'")';
-            }
             smallCtx.drawImage( cv, 0, 128, 64, 64, 0, 0, 64, 64 );
 
             document.body.children[3].style.backgroundImage='url("'+canvas.toDataURL()+'")';
@@ -289,10 +317,7 @@ scene.render = function( time ) {
                     gl.useProgram(shaderProgram);
 
                     var vertex = gl.getAttribLocation( shaderProgram, 'position' );
-                    gl.enableVertexAttribArray(vertex);
-
                     var uv = gl.getAttribLocation( shaderProgram, 'uv' );
-                    if ( uv > 0 ) gl.enableVertexAttribArray(uv);
 
                     shaders[i] = [ shaderProgram, vertex, uv ];
                 }
@@ -304,10 +329,15 @@ scene.render = function( time ) {
             globals.fullScreenBuffer = getArrayBuf([-1, -1, 0, 1, -1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1, 1, 0]);
         } break;
         case 50: {
-            scene.next = menu;
+            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+            this.uniforms = { 'resolution':[ this.width, this.height ], 'aspect':[ 1.0, this.aspect ], 'atlas': 0 };
+            gl.enableVertexAttribArray(0);
+
+
         } break;
+        case 51:
+            return;
         default: {
-            console.log( 'Skipping state ' + loadingStage );
             loadingStage += 1;
             scene.render();
             return;
@@ -324,6 +354,7 @@ function setSize(scene) {
     if (scene.size) scene.size();
 }
 
+accumelator = 0;
 onFrame = function(t) {
     setSize(scene);
 
@@ -338,6 +369,10 @@ onFrame = function(t) {
     }
     */
     scene.render(t);
+    if ( accumelator > 0.05 ) {
+        if ( scene.tick ) scene.tick();
+        accumelator -= 0.05;
+    }
 
     requestAnimationFrame(onFrame);
 
@@ -356,7 +391,7 @@ onFrame = function(t) {
 }
 requestAnimationFrame(onFrame);
 
-menu = bindRecursive({
+game = bindRecursive({
     camX: 0,
     camY: MAP_SIZE,
 
@@ -441,9 +476,6 @@ menu = bindRecursive({
     },
 
     init:function() {
-
-        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-
         var gameMap = [];
         for ( ;gameMap.length<MAP_SIZE*MAP_SIZE;gameMap[gameMap.length]=0 ) {}
 
@@ -483,25 +515,16 @@ menu = bindRecursive({
         this.viewInv = null;
         this.mvc = M4x4.flip(this.view);
 
+        gl.disableVertexAttribArray(1);
         setShader( BACKGROUND_SHADER );
         gl.bindBuffer( gl.ARRAY_BUFFER, globals.fullScreenBuffer );
         gl.vertexAttribPointer( shaders[BACKGROUND_SHADER][1], 3, gl.FLOAT, false, 0, 0 );
         gl.drawArrays( gl.TRIANGLES, 0, 6 );
+        gl.enableVertexAttribArray(1);
 
         setShader( TILE_SHADER );
         draw( this.gameBuffer );
         if ( this.entBuffer ) draw( this.entBuffer );
         draw( this.wallBuffer );
-
-        if (!this.test) {
-            this.test=true;
-
-            for ( var x = 0; x < 4; x += 3 ) {
-                for ( var y = 0; y < 4; y += 3 ) {
-                    p = M4x4.multV( this.mvc, [x,y,0,1]);
-                    console.log( x, y, p[0]*p[2], p[1]*p[2] );
-                }
-            }
-        }
     },
 });

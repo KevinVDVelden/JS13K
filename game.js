@@ -47,6 +47,8 @@ for ( var i in uv ) uv[i] = [ uv[i][0]*0.25+EPSILON, uv[i][1]*0.25+EPSILON, uv[i
 window.addEventListener('keyup', function(event) { lastKeys[event.keyCode]=keys[event.keyCode]; keys[event.keyCode] = -scene.time; }, false);
 window.addEventListener('keydown', function(event) { lastKeys[event.keyCode]=keys[event.keyCode]; keys[event.keyCode] = scene.time; }, false);
 function mouse(event) {
+    if ( !scene.onTile ) return;
+
     if ( !scene.viewInv ) {
         scene.viewInv = M4x4.inverse( scene.view );
     }
@@ -62,11 +64,7 @@ function mouse(event) {
     x = Math.round(x);
     y = Math.round(y);
 
-    if (event.type=='mousedown') {
-        var i = x*MAP_SIZE + y;
-        scene.gameMap[i] = 1 - scene.gameMap[i];
-        scene.updateBuffer();
-    }
+    scene.onTile( x, y, event );
 };
 window.addEventListener('mousemove', mouse);
 window.addEventListener('mousedown', mouse);

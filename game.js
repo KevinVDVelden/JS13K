@@ -157,6 +157,10 @@ scene.render = function( time ) {
                 d[i+2]+=n;
                 d[i+3]+=n;
             }
+            function put( i ) {
+                ctx.putImageData( id, 64*(i%8), 64*((i/8)|0) );
+                for ( var _i = 0; _i < d.length; _i++ ) d[_i] = 0;
+            }
 
             floorCrossWidth = 6;
             floorSquareDistance = 15;
@@ -183,9 +187,7 @@ scene.render = function( time ) {
                     addNoise(i,10);
                 } );
 
-                var x = floorI%8 * 64;
-                var y = ((floorI/8)|0) * 64;
-                ctx.putImageData( id, x, y );
+                put( floorI );
                 floorI += 1;
             }
             floor( 195,195,204, 173,177,181, test );
@@ -232,7 +234,7 @@ scene.render = function( time ) {
             runImage( function( x,y,i ) {
                 set( i, x < 2 ? 255 : 0, y < 2 ? 255 : 30, 30 );
             } );
-            ctx.putImageData( id, 64, 0 );
+            put( 1 ); //64, 0
 
             //Wall
             runImage( function( x,y,i ) {
@@ -246,22 +248,22 @@ scene.render = function( time ) {
                 }
                 addNoise( i, 10 );
             } );
-            ctx.putImageData( id, 128, 0 );
+            put( 2 ); //128, 0
 
             //Wall 2
             runImage( function( x,y,i ) {
                 set(i,173-y,177-y,181-y);
                 addNoise( i, 10 );
             } );
-            ctx.putImageData( id, 0, 128 );
+            put( 2*8 ); //0, 128
 
             colors = [
                 [0.1,0.9,1.0,18*18,12], [0.2,1.0,0.8,20*20,16], [0.1,0.5,0.8,16*16,12],
                 [1.0,0.4,0.1,18*18,12], [0.8,0.5,0.2,20*20,16], [0.8,0.2,0.1,16*16,12],
             ];
             //Characters
-            for ( var i in colors ) {
-                color = colors[i];
+            for ( var colorI in colors ) {
+                color = colors[colorI];
 
                 runImage( function( x,y,i ) {
                     _x = Math.abs(x - 32);
@@ -279,8 +281,65 @@ scene.render = function( time ) {
                         addNoise( i , 35 );
                     }
                 } );
-                ctx.putImageData( id, 64*(i%8), 192+64*((i/8)|0) );
+
+                put( colorI|0 + 3 * 8 );
             }
+
+            //Thought bubbles
+            bubbles = [ 4,54,3, 14,44,6, 44,32,16, 41,16,14, 20,26,11, 23,14,8 ];
+            texts = [ '', 1, 0, //Empty...
+            '%F0%9F%98%A8', 2.5, 5, //Angry
+            'X_X', 1.5, 8, //Knocked out
+            'zzzZZ', 1.5, 15, //Sleeping
+            '%E2%98%B9', 2.5, 5, //Unhappy
+            '%E2%98%BA', 3.5, 10, //Happy
+            ]
+
+            function sphere(x,y,i,radius,r,g,b) {
+                if ( x*x+y*y < radius*radius ) {
+                    set(i,r,g,b);
+                    return true;
+                }
+            }
+
+            for ( var t = 0; t < texts.length; t+= 3 ) {
+                for ( var bubbleI = 0; bubbleI < bubbles.length; bubbleI+=3 ) {
+                    runImage(function( x, y, i ) {
+                        _x=x-bubbles[bubbleI+0];
+                        _y=y-bubbles[bubbleI+1];
+
+                        sphere(_x-2,_y,i,bubbles[bubbleI+2],0,0,0);
+                        sphere(_x+2,_y,i,bubbles[bubbleI+2],0,0,0);
+                        sphere(_x,_y-2,i,bubbles[bubbleI+2],0,0,0);
+                        sphere(_x,_y+2,i,bubbles[bubbleI+2],0,0,0);
+                    } );
+                }
+                for ( var bubbleI = 0; bubbleI < bubbles.length; bubbleI+=3 ) {
+                    runImage(function( x, y, i ) {
+                        _x=x-bubbles[bubbleI+0];
+                        _y=y-bubbles[bubbleI+1];
+
+                        if ( sphere(_x,_y,i,bubbles[bubbleI+2],235,235,235) )
+                            addNoise( i, 20 );
+                    } );
+                }
+                ctx.save();
+                ctx.scale(texts[t+1], texts[t+1]);
+                text = decodeURIComponent( texts[t] );
+
+                var w = ctx.measureText( text ).width;
+                console.log(text,w);
+
+                var _t = t/3;
+                put( _t + 4 * 8 );
+                ctx.fillText( text, ( _t*64+28 - texts[t+2] ) / texts[t+1], ( 4*64+28 ) / texts[t+1] );
+                ctx.fillText( text, ( _t*64+29 - texts[t+2] ) / texts[t+1], ( 4*64+28 ) / texts[t+1] );
+                ctx.fillText( text, ( _t*64+28 - texts[t+2] ) / texts[t+1], ( 4*64+29 ) / texts[t+1] );
+                ctx.fillText( text, ( _t*64+29 - texts[t+2] ) / texts[t+1], ( 4*64+29 ) / texts[t+1] );
+                ctx.restore();
+            }
+
+            //Loot
         } break;
         case 20: {
             globals.atlas = gl.createTexture();

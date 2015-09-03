@@ -2,6 +2,8 @@ function setUniforms(program, vars) {
     for ( key in vars ) {
         var uniform = gl.getUniformLocation( program, key );
         var t = typeof vars[key];
+        if ( t == 'undefined' ) continue;
+
         if ( key=='atlas') {
             gl.uniform1i( uniform, vars[key] );
         } else if (t == 'number') {

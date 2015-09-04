@@ -8,7 +8,7 @@ TMP_DIRECTORY=tmp
 
 EXTRA_FILES=$(shell find -name \*.fs|grep -v $(ZIP_DIRECTORY))
 EXTRA_FILES+=$(shell find -name \*.vs|grep -v $(ZIP_DIRECTORY))
-EXTRA_FILES+=intro.html
+EXTRA_FILES+=intro.html about.html menu.html
 
 .PHONY: dist all info
 all: $(UGLY_JS_FILES)

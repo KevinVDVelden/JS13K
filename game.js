@@ -93,11 +93,13 @@ function setScene(name) {
         document.body.children[3].style['backgroundSize']='30% 100%';
     }
 }
+window['setScene']=setScene;
 function startGame(settings) {
     game.settings = settings;
     scene.next = game;
     document.body.children[3].style.display = 'none';
 }
+window['startGame']=startGame;
 
 scene.render = function( time ) {
     if ( loadingStage > 50 ) {
@@ -173,7 +175,7 @@ scene.render = function( time ) {
             }
 
             //Floor
-            rnd = lcg();rnd.setSeed(0);
+            rnd = lcg();rnd.setSeed(46);
             floorI = 0;
             function floor( r1,g1,b1, r2,g2,b2, test, f ) {
                 runImage( function( x,y,i ) {
@@ -340,6 +342,68 @@ scene.render = function( time ) {
             }
 
             //Loot
+            function drawSphere(x,y,i,size,r,g,b,a) {
+                var c = Math.round( (x-32)*(x-32) + ((y-32)*2)*((y-32)*2) );
+                if ( c < size * size ) {
+                    set(i,r,g,b,a);
+                    return true;
+                }
+            }
+            /*
+            function drawBox(x,y,i,size,r,g,b,a) {
+                var c = Math.round( Math.abs(y-32)*2+Math.abs(x-32) );
+                if ( c < size ) {
+                    set(i,r,g,b,a);
+                }
+            }
+            boxes = [
+                [ 255,102,25, 16, 20, drawBox ],
+                [ 255,102,25, 16, 20, drawSphere ],
+                [ 25,102,255, 16, 18, drawBox ],
+                [ 25,102,255, 16, 18, drawSphere ],
+                [ 25,255,102, 12, 16, drawBox ],
+                [ 25,255,102, 12, 16, drawSphere ],
+                [ 102,255,25, 12, 12, drawBox ],
+                [ 102,255,25, 12, 12, drawSphere ],
+            ];
+            for ( var boxI = 0; boxI < boxes.length; boxI++ ) {
+                var box = boxes[boxI];
+                runImage( function( x, y, i ) {
+                    box[5]( x+7, y-3.5, i, box[4]+4, 50,50,50,80 );
+                    for (var _y=0; _y<box[3]; _y++ ) {
+                        var col = Math.min( 1.0, 0.6 + _y * 0.05 );
+                        if ( _y > 7 && _y%2==0 ) col = 0.6;
+                        box[5]( x,y+_y, i, box[4], box[0]*col,box[1]*col,box[2]*col,255 );
+                    }
+                    box[5]( x,y+box[3], i, box[4]*0.7, box[0]*0.7,box[1]*0.7,box[2]*0.7,255 );
+                    addNoise( i, 15 );
+                } );
+                put( 5*8 + boxI );
+            }
+            */
+
+            var coins = [];
+            for ( var coinSetI = -1; coinSetI < 8; coinSetI++ ) {
+                var baseY = ( ( coinSetI + 2 ) / 10 ) * 44 - 22;
+                var baseX = 15 - rnd.rand() * 30;
+                coins[coins.length] = [ baseX, baseY ];
+
+                if ( coinSetI < 0 ) continue;
+
+                for ( coinI = 0; coinI < coins.length; coinI++ ) {
+                    var coin = coins[coinI];
+
+                    runImage( function( x, y, i ) {
+                        var b = drawSphere( x+7-coin[0], y-3.5-coin[1], i, 8, 50,50,50,80 );
+                        for (var _y=0; _y<3; _y++ ) {
+                            var col = Math.min( 1.0, 0.85 + _y * 0.05 );
+                            drawSphere( x-coin[0],y+_y-coin[1], i, 6, 220*col,150*col,25*col );
+                        }
+                        if ( b ) addNoise( i, 15 );
+                    } );
+                }
+                put( 5*8 + coinSetI );
+            }
         } break;
         case 20: {
             globals.atlas = gl.createTexture();

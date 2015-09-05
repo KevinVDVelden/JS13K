@@ -19,8 +19,13 @@ function setUniforms(program, vars) {
 //uniform vec2 resolution;
 //uniform float time;
 }
-function getArrayBuf( buffer ) {
-    var ret = gl.createBuffer();
+function getArrayBuf( glBuff, buffer ) {
+    if ( glBuff ) {
+        var ret = glBuff;
+    } else {
+        var ret = gl.createBuffer();
+    }
+
     gl.bindBuffer( gl.ARRAY_BUFFER, ret );
     gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(buffer), gl.STATIC_DRAW );
 
@@ -40,8 +45,8 @@ function setShader( shaderI ) {
 function draw( buf ) {
     if ( buf.length > 0 ) {
         gl.bindBuffer( gl.ARRAY_BUFFER, buf );
-        gl.vertexAttribPointer( shaders[TILE_SHADER][1], 3, gl.FLOAT, false, 5*4, 0 );
-        gl.vertexAttribPointer( shaders[TILE_SHADER][2], 2, gl.FLOAT, false, 5*4, 3*4 );
-        gl.drawArrays( gl.TRIANGLES, 0, buf.length / 5 );
+        gl.vertexAttribPointer( shaders[TILE_SHADER][1], 3, gl.FLOAT, false, 6*4, 0 );
+        gl.vertexAttribPointer( shaders[TILE_SHADER][2], 3, gl.FLOAT, false, 6*4, 3*4 );
+        gl.drawArrays( gl.TRIANGLES, 0, buf.length / 6 );
     }
 }

@@ -1,16 +1,16 @@
-STAT_FROZEN = 0;
-STAT_FEAR = 1;
-STAT_BORED = 2;
+/** @const */ STAT_FROZEN = 0;
+/** @const */ STAT_FEAR = 1;
+/** @const */ STAT_BORED = 2;
 
-TAG_THIEF = 0;
-TAG_ICON = 1;
-TAG_TILE = 2;
-TAG_THOUGHT = 3;
-TAG_TRIGGER_ACTION = 4;
+/** @const */ TAG_THIEF = 0;
+/** @const */ TAG_ICON = 1;
+/** @const */ TAG_TILE = 2;
+/** @const */ TAG_THOUGHT = 3;
+/** @const */ TAG_TRIGGER_ACTION = 4;
 
-TAG_TRIGGER = 1000;
-TAG_TILE_BASE = 1001;
-TAG_THOUGHT_ALPHA = 1002;
+/** @const */ TAG_TRIGGER = 1000;
+/** @const */ TAG_TILE_BASE = 1001;
+/** @const */ TAG_THOUGHT_ALPHA = 1002;
 
 /** @const */ ENTITY_X = 0;
 /** @const */ ENTITY_Y = 1;

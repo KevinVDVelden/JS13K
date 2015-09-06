@@ -34,8 +34,11 @@ $(MINIFIED_JS_FILES): $(JS_FILES)
 	closure-compiler --create_source_map min.map --language_in ECMASCRIPT5 --compilation_level ADVANCED_OPTIMIZATIONS $(patsubst %,--js %,$(JS_FILES)) --js_output_file $@
 	echo '//@ sourceMappingURL=min.map' >> $@
 
-$(SUBSTITUTED_JS_FILES): $(MINIFIED_JS_FILES) subst.sh
+$(SUBSTITUTED_JS_FILES): $(MINIFIED_JS_FILES) subst.sh subst_const.sh
 	cat $< | sh subst.sh > $@
+
+subst_const.sh: consts.sh $(JS_FILES)
+	bash consts.sh
 
 $(UGLY_JS_FILES): $(SUBSTITUTED_JS_FILES)
 	uglifyjs --source-map ugly.map --in-source-map min.map $< -o $@ --screw-ie8 -m sort,toplevel -c unsafe,drop_console
@@ -61,4 +64,4 @@ clean:
 TESTCOMPRESS: bestCompress.sh
 
 bestCompress.sh: dist
-	sh 7z.sh $(TMP_DIRECTORY)
+	bash 7z.sh $(TMP_DIRECTORY)

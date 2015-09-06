@@ -46,7 +46,7 @@
  * For potentially more performance, the assert methods can be
  * commented out in each place where they are called.
  */
-/** @const */ var MJS_DO_ASSERT = true;
+/** @const */ var MJS_DO_ASSERT = false;
 
 /*
  * Constant: MJS_FLOAT_ARRAY_TYPE

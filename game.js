@@ -1,13 +1,17 @@
-/**@const */ KEY_UP = 'W'.charCodeAt(0);
-/**@const */ KEY_DOWN = 'S'.charCodeAt(0);
-/**@const */ KEY_LEFT = 'A'.charCodeAt(0);
-/**@const */ KEY_RIGHT = 'D'.charCodeAt(0);
+//'W'.charCodeAt(0);
+/**@const */ KEY_UP = 87;
+//'S'.charCodeAt(0);
+/**@const */ KEY_DOWN = 83;
+//'A'.charCodeAt(0);
+/**@const */ KEY_LEFT = 65;
+//'D'.charCodeAt(0);
+/**@const */ KEY_RIGHT = 68;
 
 /**@const */ TILE_WIDTH = 1;
 /**@const */ TILE_HEIGHT = 0.5;
 /**@const */ MAP_SIZE = 128;
 
-/**@const */ tilesPerMS = 12 / 1000;
+/**@const */ TILESPERMS = 0.012;
 
 canvas = document.body.children[0];
 canvas.width = window.innerWidth;
@@ -473,8 +477,8 @@ game = bindRecursive({
         if (keys[KEY_RIGHT]>0) { deltaX += 1; }
 
         if ( this.delta ) {
-            this.camX += deltaX * this.delta * tilesPerMS;
-            this.camY += deltaY * this.delta * tilesPerMS;
+            this.camX += deltaX * this.delta * TILESPERMS;
+            this.camY += deltaY * this.delta * TILESPERMS;
         }
 
         this.view = M4x4.translate3(-this.camX,-this.camY/4,-10, this.perspective );

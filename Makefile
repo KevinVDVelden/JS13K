@@ -1,7 +1,7 @@
 MINIFIED_JS_FILES=min.js
 SUBSTITUTED_JS_FILES=min_subst.js
 UGLY_JS_FILES=ugly.js
-JS_FILES=$(shell find -name \*.js|grep -v $(MINIFIED_JS_FILES)|grep -v $(SUBSTITUTED_JS_FILES)|grep -v $(UGLY_JS_FILES))
+JS_FILES=mjs.js util.js util_gl.js flowmap.js game_pcg.js game_data.js game.js
 ZIP=js13k.zip
 ZIP_DIRECTORY=js13k
 TMP_DIRECTORY=tmp
@@ -30,17 +30,17 @@ $(ZIP): dist $(ZIP_EXTRA)
 	@bash bestCompress.sh $(ZIP_DIRECTORY) $(TMP_DIRECTORY) $(ZIP)
 
 
-$(MINIFIED_JS_FILES): $(JS_FILES)
-	closure-compiler --create_source_map min.map --language_in ECMASCRIPT5 --compilation_level ADVANCED_OPTIMIZATIONS $(patsubst %,--js %,$(JS_FILES)) --js_output_file $@
+$(MINIFIED_JS_FILES): $(SUBSTITUTED_JS_FILES)
+	closure-compiler --create_source_map min.map --language_in ECMASCRIPT5 --compilation_level ADVANCED_OPTIMIZATIONS --js $(SUBSTITUTED_JS_FILES) --js_output_file $@ 2> closure.log
 	echo '//@ sourceMappingURL=min.map' >> $@
 
-$(SUBSTITUTED_JS_FILES): $(MINIFIED_JS_FILES) subst.sh subst_const.sh
-	cat $< | sh subst.sh > $@
+$(SUBSTITUTED_JS_FILES): $(JS_FILES) subst.sh subst_const.sh
+	cat $(JS_FILES) | sh subst.sh > $@
 
 subst_const.sh: consts.sh $(JS_FILES)
 	bash consts.sh
 
-$(UGLY_JS_FILES): $(SUBSTITUTED_JS_FILES)
+$(UGLY_JS_FILES): $(MINIFIED_JS_FILES)
 	uglifyjs --source-map ugly.map --in-source-map min.map $< -o $@ --screw-ie8 -m sort,toplevel -c unsafe,drop_console
 
 info: $(ZIP)

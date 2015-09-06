@@ -1,4 +1,5 @@
-if [ $# == 1 ]
+#!/bin/bash
+if [ "$#" -eq "1" ]
 then
     mkdir -p "$1"
     rm -fv "$1"/*
@@ -18,6 +19,7 @@ then
                 then
                     SMALLEST=$SIZE
                     echo '#!/bin/bash' > bestCompress.sh
+                    echo "rm "$3  >> bestCompress.sh
                     echo '7z a "$3" "$1/*" '-mpass=$passes -mx=$compression -mm=$method '>/dev/null' >> bestCompress.sh
                     echo New smallest at $SMALLEST bytes "( -mpass=$passes -mx=$compression -mm=$method )"
                 fi

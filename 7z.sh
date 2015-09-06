@@ -19,7 +19,7 @@ then
                 then
                     SMALLEST=$SIZE
                     echo '#!/bin/bash' > bestCompress.sh
-                    echo "rm "$3  >> bestCompress.sh
+                    echo 'rm $3'  >> bestCompress.sh
                     echo '7z a "$3" "$1/*" '-mpass=$passes -mx=$compression -mm=$method '>/dev/null' >> bestCompress.sh
                     echo New smallest at $SMALLEST bytes "( -mpass=$passes -mx=$compression -mm=$method )"
                 fi

@@ -195,8 +195,6 @@ function renderImages( id, d ) {
         ctx.scale(texts[t+1], texts[t+1]);
         text = decodeURIComponent( texts[t] );
 
-        var w = ctx.measureText( text ).width;
-
         var _t = t/3;
         put( _t + 4 * 8 );
         ctx.fillText( text, ( _t*64+28 - texts[t+2] ) / texts[t+1], ( 4*64+28 ) / texts[t+1] );

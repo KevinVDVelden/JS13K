@@ -10,17 +10,24 @@ EXTRA_FILES=$(shell find -name \*.fs|grep -v $(ZIP_DIRECTORY))
 EXTRA_FILES+=$(shell find -name \*.vs|grep -v $(ZIP_DIRECTORY))
 EXTRA_FILES+=intro.html about.html menu.html
 
-.PHONY: dist all info
+.PHONY: zip dist all info TESTCOMPRESS
 all: $(UGLY_JS_FILES)
 
-dist: $(ZIP)
-
-$(ZIP): $(UGLY_JS_FILES) $(EXTRA_FILES) index_ugly.html
+dist: $(UGLY_JS_FILES) $(EXTRA_FILES) index_ugly.html
 	@mkdir -p $(ZIP_DIRECTORY) $(TMP_DIRECTORY)
-	cp $(UGLY_JS_FILES) $(ZIP_DIRECTORY)
-	cp $(EXTRA_FILES) $(ZIP_DIRECTORY)
-	cp index_ugly.html $(ZIP_DIRECTORY)/index.html
-	bash bestCompress.sh $(ZIP_DIRECTORY) $(TMP_DIRECTORY) $(ZIP)
+	@cp -uv $(UGLY_JS_FILES) $(ZIP_DIRECTORY)
+	@cp -uv $(EXTRA_FILES) $(ZIP_DIRECTORY)
+	@cp -uv index_ugly.html $(ZIP_DIRECTORY)/index.html
+
+zip: $(ZIP)
+
+ZIP_EXTRA=
+ifeq ("$(wildcard bestCompress.sh)","")
+	ZIP_EXTRA+=bestCompress.sh
+endif
+
+$(ZIP): dist $(ZIP_EXTRA)
+	@bash bestCompress.sh $(ZIP_DIRECTORY) $(TMP_DIRECTORY) $(ZIP)
 
 
 $(MINIFIED_JS_FILES): $(JS_FILES)
@@ -49,3 +56,9 @@ clean:
 	@rm -vf $(ZIP)
 	@rm -vrf $(ZIP_DIRECTORY)
 	@rm -vrf $(TMP_DIRECTORY)
+
+
+TESTCOMPRESS: bestCompress.sh
+
+bestCompress.sh: dist
+	sh 7z.sh $(TMP_DIRECTORY)

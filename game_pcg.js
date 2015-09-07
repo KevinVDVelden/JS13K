@@ -37,6 +37,12 @@ function renderImages( id, d ) {
         }
     }
 
+    //VR tile
+    runImage( function( x,y,i ) {
+        set( i, x < 2 ? 255 : 0, y < 2 ? 255 : 30, 30 );
+    } );
+    put( 1 ); //64, 0
+
     //Floor
     rnd = lcg();rnd.setSeed(46);
     floorI = 0;
@@ -67,6 +73,7 @@ function renderImages( id, d ) {
             set(i,r,g,b);
         }
     }
+    floorI = 8;
     floor( 195,195,204, 103,207,191, test2 ); //Tile entrance
     floor( 195,195,204, 207,103,101, test2 ); //Tile exit
     floor( 195,195,204, 50,50,50, test2 ); //Disabled porter
@@ -98,15 +105,9 @@ function renderImages( id, d ) {
     floor( 195,195,204, 50,50,50, test4 ); //Disabled trap type 2
     */
 
-    //VR tile
-    runImage( function( x,y,i ) {
-        set( i, x < 2 ? 255 : 0, y < 2 ? 255 : 30, 30 );
-    } );
-    put( 1 ); //64, 0
-
     //Wall
     runImage( function( x,y,i ) {
-        set(i,173-y,177-y,181-y);
+        set(i,173-y*1.5,177-y*1.5,181-y*1.5);
 
         if ( y > 41 && y < 51 ) {
             var c = ( y - 44 ) - ( Math.sin( x * 0.5 ) * 3 ) | 0;
@@ -116,19 +117,20 @@ function renderImages( id, d ) {
         }
         addNoise( i, 10 );
     } );
-    put( 2 ); //128, 0
+    put( 6 ); //128, 0
 
     //Wall 2
     runImage( function( x,y,i ) {
         set(i,173-y,177-y,181-y);
         addNoise( i, 10 );
     } );
-    put( 2*8 ); //0, 128
+    put( 7 ); //0, 128
 
     colors = [
-        [0.1,0.9,1.0,18*18,12], [0.2,1.0,0.8,20*20,16], [0.1,0.5,0.8,16*16,12],
-        [1.0,0.4,0.1,18*18,12], [0.8,0.5,0.2,20*20,16], [0.8,0.2,0.1,16*16,12],
+        [0.1,0.9,1.0,18*18,12], [0.2,1.0,0.8,20*20,16], [0.1,0.5,0.8,16*16,12], [0.2,0.5,0.8,18*18,14],
+        [1.0,0.4,0.1,18*18,12], [0.8,0.5,0.2,20*20,16], [0.8,0.2,0.1,16*16,12], [0.7,0.2,0.1,18*18,14],
     ];
+
     //Characters
     for ( var colorI in colors ) {
         color = colors[colorI];
@@ -247,19 +249,20 @@ function renderImages( id, d ) {
     var coins = [];
     for ( var coinSetI = -1; coinSetI < 8; coinSetI++ ) {
         var baseY = ( ( coinSetI + 2 ) / 10 ) * 44 - 22;
-        var baseX = 15 - rnd.rand() * 30;
+        var baseX = Math.sin( 2 * baseY ) * 15;
         coins[coins.length] = [ baseX, baseY ];
 
         if ( coinSetI < 0 ) continue;
 
         for ( coinI = 0; coinI < coins.length; coinI++ ) {
             var coin = coins[coinI];
+            var yOffset = 18 - ( 35 / 8 / 2 * coinSetI );
 
             runImage( function( x, y, i ) {
-                drawSphere( x+7-coin[0], y-3.5-coin[1], i, 8, 0,0,0,80 );
+                //drawSphere( x+7-coin[0], y-3.5-coin[1], i, 8, 0,0,0,80 );
                 for (var _y=0; _y<3; _y++ ) {
                     var col = Math.min( 1.0, 0.85 + _y * 0.05 );
-                    drawSphere( x-coin[0],y+_y-coin[1], i, 6, 220*col,150*col,25*col );
+                    drawSphere( x - coin[0], y + _y - coin[1] - yOffset, i, 6, 220*col, 150*col, 25*col );
                 }
                 addNoise( i, 15 );
             } );

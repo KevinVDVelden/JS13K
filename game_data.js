@@ -17,6 +17,7 @@
 /** @const */ TYPE_THIEF = 1;
 /** @const */ TYPE_LOOT = 2;
 /** @const */ TYPE_TRAP = 3;
+/** @const */ TYPE_ENTRANCE = 4;
 
 /** @const */ ENTITY_X = 0;
 /** @const */ ENTITY_Y = 1;
@@ -28,10 +29,12 @@
 /** @const */ ENTITY_TAGS = 7;
 /** @const */ ENTITY_THINK = 8;
 /** @const */ var THIEF_BASE =   [ [[0,0,64,-1],[0,0,10,-0.01],[0,0,10,0.001]], [TYPE_THIEF,3*8+3,,], [thiefThink] ];
+/** @const */ var ENTRANCE_BASE =[ [], [TYPE_ENTRANCE,,1*8+1], [] ];
+/** @const */ var EXIT_BASE =    [ [[60,0,60,-1]], [TYPE_ENTRANCE,,1*8+2,,,trapDisableExit], [] ];
 /** @const */ var TRAP_BASES = { 
-    0: [ [[40,0,40,-1]], [TYPE_TRAP,,0*8+8,,,trapTriggerNeighbours], [trapThink] ],
-    1: [ [[60,0,60,-1]], [TYPE_TRAP,,0*8+7,,,trapFreeze], [trapThink] ],
-    2: [ [[70,0,70,-1]], [TYPE_TRAP,,0*8+9,,,trapZap], [trapThink] ],
+    0: [ [[40,0,40,-1]], [TYPE_TRAP,,1*8+4,,,trapTriggerNeighbours], [trapThink] ],
+    1: [ [[60,0,60,-1]], [TYPE_TRAP,,1*8+3,,,trapFreeze], [trapThink] ],
+    2: [ [[70,0,70,-1]], [TYPE_TRAP,,1*8+5,,,trapZap], [trapThink] ],
 };
 /** @const */ var LOOT = {
     0: [ [,,,[10,0,10,0.01]],             [TYPE_LOOT,,,,5*8+0], [] ],
@@ -67,6 +70,8 @@ function trapThink( world, ent ) {
     }
 }
 
+function trapDisableExit( ent ) {
+}
 function trapSleep( ent ) {
     ent[ENTITY_ATTRIBUTE][STAT_FROZEN] = ent[ENTITY_MAX_ATTRIBUTE][STAT_FROZEN][1];
 }

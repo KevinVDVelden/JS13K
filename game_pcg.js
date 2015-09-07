@@ -256,7 +256,7 @@ function renderImages( id, d ) {
             var coin = coins[coinI];
 
             runImage( function( x, y, i ) {
-                drawSphere( x+7-coin[0], y-3.5-coin[1], i, 8, 50,50,50,80 );
+                drawSphere( x+7-coin[0], y-3.5-coin[1], i, 8, 0,0,0,80 );
                 for (var _y=0; _y<3; _y++ ) {
                     var col = Math.min( 1.0, 0.85 + _y * 0.05 );
                     drawSphere( x-coin[0],y+_y-coin[1], i, 6, 220*col,150*col,25*col );

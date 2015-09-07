@@ -249,12 +249,14 @@ onFrame = function(t) {
         scene.next.lastTime = scene.lastTime;
         scene.next.time = scene.time;
 
-        if (scene.next.init) {
-            scene.next.init();
+        var curScene = scene;
+        scene = scene.next;
+
+        if (scene.init) {
+            scene.init();
         }
 
-        scene.next.parent = scene;
-        scene = scene.next;
+        scene.parent = curScene;
     }
 }
 requestAnimationFrame(onFrame);
@@ -380,18 +382,36 @@ game = bindRecursive({
         this.gameMap = gameMap;
         for ( ;gameMap.length<MAP_SIZE*MAP_SIZE;gameMap[gameMap.length]=0 ) {}
 
-        this.entities = [];
+        while ( true ) {
+            this.entities = [];
 
-        for ( var x = 62; x < 67; x++ ) 
-            for ( var y = 62; y < 67; y++ ) 
-                gameMap[y*MAP_SIZE+x] = 1;
+            function addRoom( _x, _y, w, h, ent ) {
+                for ( var x = _x-w; x <= _x+w; x++ )
+                    for ( var y = _y-h; y <= _y+h; y++ )
+                        gameMap[y*MAP_SIZE+x] = 1;
+
+                scene.addEntity( _x, _y, ent );
+            }
 
 
-        this.addEntity( 64, 64, THIEF_BASE );
-        this.addEntity( 64, 64, TRAP_BASES[0] );
-        this.addEntity( 65, 64, TRAP_BASES[1] );
-        this.addEntity( 64, 65, TRAP_BASES[2] );
+            var roomTypes = [ LOOT[0], LOOT[1], LOOT[2] ];
+            console.log( roomTypes[0] );
+            console.log( TRAP_BASES[0] );
 
+            for ( var x = -1; x < 2; x++ ) {
+                for ( var y = -1; y < 2; y++ ) {
+                    var i = Math.floor( Math.random() * roomTypes.length );
+                    console.log( i );
+                    addRoom( 64 + x * 9, 64 + y * 9, 1, 1, roomTypes[ i ] );
+                }
+            }
+            //this.addEntity( 64, 64, THIEF_BASE );
+            //this.addEntity( 64, 64, TRAP_BASES[0] );
+            //this.addEntity( 65, 64, TRAP_BASES[1] );
+            //this.addEntity( 64, 65, TRAP_BASES[2] );
+
+            break;
+        }
         this.updateBuffer();
     },
 
@@ -416,7 +436,7 @@ game = bindRecursive({
             var ent = this.entities[i];
 
             for ( var attrI in ent[ENTITY_ATTRIBUTE] ) {
-                ent[ENTITY_ATTRIBUTE][attrI] = Math.min( 
+                ent[ENTITY_ATTRIBUTE][attrI] = Math.min(
                         ent[ENTITY_MAX_ATTRIBUTE][attrI][1],
                         Math.max( ent[ENTITY_MAX_ATTRIBUTE][attrI][0],
                             ent[ENTITY_ATTRIBUTE][attrI] + ent[ENTITY_CHANGE_ATTRIBUTE][attrI] ) );
@@ -431,27 +451,30 @@ game = bindRecursive({
         for ( var i = 0; i < this.entities.length; i++ ) {
             ent = this.entities[i];
 
+            function add( x, y, _uv, alpha ) {
+                var _x = ( x - y ) * 0.5;
+                var _y = ( x + y ) * 0.25;
+                _uv = uv[ _uv ];
+
+                entBuffer = entBuffer.concat( [
+                        _x - 0.45, _y - 0.45, 0, _uv[0], _uv[3], alpha, //A
+                        _x - 0.45, _y + 0.45, 0, _uv[0], _uv[1], alpha, //B
+                        _x + 0.45, _y - 0.45, 0, _uv[2], _uv[3], alpha, //C
+
+                        _x + 0.45, _y + 0.45, 0, _uv[2], _uv[1], alpha, //D
+                        _x - 0.45, _y + 0.45, 0, _uv[0], _uv[1], alpha, //B
+                        _x + 0.45, _y - 0.45, 0, _uv[2], _uv[3], alpha, //C
+                ] );
+            }
+
             if ( ent[ENTITY_TAGS][TAG_ICON] ) {
-                function add( x, y, _uv, alpha ) {
-                    var _x = ( x - y ) * 0.5;
-                    var _y = ( x + y ) * 0.25;
-                    _uv = uv[ _uv ];
-
-                    entBuffer = entBuffer.concat( [
-                            _x - 0.45, _y - 0.25, 0, _uv[0], _uv[3], alpha, //A
-                            _x - 0.45, _y + 0.65, 0, _uv[0], _uv[1], alpha, //B
-                            _x + 0.45, _y - 0.25, 0, _uv[2], _uv[3], alpha, //C
-
-                            _x + 0.45, _y + 0.65, 0, _uv[2], _uv[1], alpha, //D
-                            _x - 0.45, _y + 0.65, 0, _uv[0], _uv[1], alpha, //B
-                            _x + 0.45, _y - 0.25, 0, _uv[2], _uv[3], alpha, //C
-                    ] );
-                }
-
-                add( ent[0], ent[1], ent[ENTITY_TAGS][TAG_ICON], 1 );
-                if ( ent[ENTITY_TAGS][TAG_THOUGHT] > 0 ) {
-                    add( ent[0]+1.8, ent[1]+0.8, ent[ENTITY_TAGS][TAG_THOUGHT], ent[ENTITY_TAGS][TAG_THOUGHT_ALPHA] );
-                }
+                add( ent[0], ent[1] + 0.2, ent[ENTITY_TAGS][TAG_ICON], 1 );
+            }
+            if ( ent[ENTITY_TAGS][TAG_TILE_ICON] > 0 ) {
+                add( ent[0], ent[1], ent[ENTITY_TAGS][TAG_TILE_ICON], 1 );
+            }
+            if ( ent[ENTITY_TAGS][TAG_THOUGHT] > 0 ) {
+                add( ent[0]+1.8, ent[1]+0.8, ent[ENTITY_TAGS][TAG_THOUGHT], ent[ENTITY_TAGS][TAG_THOUGHT_ALPHA] );
             }
         }
         this.entBuffer = getArrayBuf( this.entBuffer, entBuffer );

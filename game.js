@@ -41,9 +41,7 @@ var TILE_SHADER=1;
 shaders[TILE_SHADER]=function(){return [[getAjax('tiles.fs'),gl.FRAGMENT_SHADER],[getAjax('tiles.vs'),gl.VERTEX_SHADER]];}
 
 /**@const */ TILE_FLOOR = 0;
-/**@const */ TILE_WALL = 2;
-/**@const */ TILE_ENTRANCE = 3;
-/**@const */ TILE_EXIT = 4;
+/**@const */ TILE_WALL = 6;
 
 uv = [];
 
@@ -97,7 +95,7 @@ function setScene(name) {
 
             img.src=canvas.toDataURL();
         }
-        smallCtx.drawImage( cv, 0, 128, 64, 64, 0, 0, 64, 64 );
+        smallCtx.drawImage( cv, 448, 0, 64, 64, 0, 0, 64, 64 );
 
         document.body.children[3].style.backgroundImage='url("'+canvas.toDataURL()+'")';
         document.body.children[3].style['backgroundSize']='30% 100%';
@@ -133,19 +131,19 @@ scene.render = function( time ) {
                 return;
             }
         } break;
-        case 12: {
-            var canvas = document.body.children[2];
-            var smallCtx = canvas.getContext('2d');
-
-            smallCtx.drawImage( cv, 0, 128, 64, 64, 0, 0, 64, 64 );
-
-            document.body.children[3].style.backgroundImage='url("'+canvas.toDataURL()+'")';
-            document.body.children[3].style['backgroundSize']='30% 100%';
-        } break;
         case 11: {
             id = ctx.createImageData( 64, 64 );
             d=id.data;
             renderImages( id, d );
+        } break;
+        case 12: {
+            var canvas = document.body.children[2];
+            var smallCtx = canvas.getContext('2d');
+
+            smallCtx.drawImage( cv, 448, 0, 64, 64, 0, 0, 64, 64 );
+
+            document.body.children[3].style.backgroundImage='url("'+canvas.toDataURL()+'")';
+            document.body.children[3].style['backgroundSize']='30% 100%';
         } break;
         case 20: {
             globals.atlas = gl.createTexture();
@@ -284,7 +282,7 @@ game = bindRecursive({
                 var _y = ( x + y ) * 0.25;
 
                 hh = this.gameMap[ i + MAP_SIZE + 1 ] == 0;
-                uvHH = hh ? 0 : (2/3)/4;
+                uvHH = hh ? 0 : (2/3)/8;
                 hh = hh ? 0.5 : 0;
                 if ( this.gameMap[i + MAP_SIZE ] == 0 ) {
                     _uv = uv[TILE_WALL];
@@ -378,11 +376,11 @@ game = bindRecursive({
     },
 
     init:function() {
-        var gameMap = [];
-        this.gameMap = gameMap;
-        for ( ;gameMap.length<MAP_SIZE*MAP_SIZE;gameMap[gameMap.length]=0 ) {}
-
         while ( true ) {
+            var gameMap = [];
+            this.gameMap = gameMap;
+            for ( ;gameMap.length<MAP_SIZE*MAP_SIZE;gameMap[gameMap.length]=0 ) {}
+
             this.entities = [];
 
             function addRoom( _x, _y, w, h, ent ) {
@@ -394,21 +392,40 @@ game = bindRecursive({
             }
 
 
-            var roomTypes = [ LOOT[0], LOOT[1], LOOT[2] ];
-            console.log( roomTypes[0] );
-            console.log( TRAP_BASES[0] );
+            var roomTypes = [ LOOT[0], LOOT[1], LOOT[2], EXIT_BASE ];
+            var types = [ 0, 0, 0, 0 ];
 
-            for ( var x = -1; x < 2; x++ ) {
-                for ( var y = -1; y < 2; y++ ) {
+            for ( var x = 64 - 12; x <= 64 + 12; x++ ) {
+                for ( var y = 64 - 12; y <= 64 + 12; y++ ) {
+                    this.gameMap[ y * MAP_SIZE + x ] = 2;
+                }
+            }
+
+            entranceX = ( Math.random() * 3 ) | 0 - 1;
+            entranceY = ( Math.random() * 3 ) | 0 - 1;
+
+            addRoom( 64 + entranceX * 6, 64 + entranceY * 6, 2, 2, ENTRANCE_BASE );
+
+            for ( var x = -2; x < 3; x++ ) {
+                for ( var y = -2; y < 3; y++ ) {
+                    if ( x == entranceX && y == entranceY ) continue;
+
                     var i = Math.floor( Math.random() * roomTypes.length );
-                    console.log( i );
-                    addRoom( 64 + x * 9, 64 + y * 9, 1, 1, roomTypes[ i ] );
+                    types[ i ] += 1;
+                    var w = 1, h = 1;
+                    if ( Math.random() > 0.7 ) if ( Math.random() > 0.5 ) w = 2; else h = 2;
+                    addRoom( 64 + x * 6, 64 + y * 6, w, h, roomTypes[ i ] );
                 }
             }
             //this.addEntity( 64, 64, THIEF_BASE );
             //this.addEntity( 64, 64, TRAP_BASES[0] );
             //this.addEntity( 65, 64, TRAP_BASES[1] );
             //this.addEntity( 64, 65, TRAP_BASES[2] );
+
+            if ( types[ 3 ] == 0 || types[ 3 ] > 2 ) {
+                console.log( 'Disbanding generation, trying again.' );
+                continue; //Ensure not too many exits
+            }
 
             break;
         }
@@ -502,6 +519,9 @@ game = bindRecursive({
         if ( this.delta ) {
             this.camX += deltaX * this.delta * TILESPERMS;
             this.camY += deltaY * this.delta * TILESPERMS;
+
+            this.camY = Math.min( 160, Math.max( 100, this.camY ) );
+            this.camX = Math.min( 10, Math.max( -10, this.camX ) );
         }
 
         this.view = M4x4.translate3(-this.camX,-this.camY/4,-10, this.perspective );

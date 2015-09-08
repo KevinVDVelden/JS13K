@@ -19,6 +19,39 @@ body {
 .intro * {
     color: white;
 }
+.ui_p {
+    position: absolute;
+    width: 100%;
+    bottom: 0;
+}
+.ui {
+    margin: 0 auto;
+    background: white;
+    border-radius: 6px;
+    width: 398px;
+}
+.ui div {
+    margin: 0 auto;
+    width: 380px;
+}
+.ui label {
+    text-align: center;
+    color: black;
+    height: 90px;
+    padding-top: 16px;
+}
+.ui img {
+    padding: 0 14px;
+}
+.ui label {
+    display: inline-block;
+}
+.ui input {
+    display: none;
+}
+input[type="radio"]:checked+label {
+    background: rgba( 0, 255, 255, 0.3 );
+}
 </style>
 </head>
 <body>
@@ -26,8 +59,35 @@ body {
 <canvas class="p" width="512" height="512"></canvas>
 <canvas class="p" width="64" height="64"></canvas>
 <div class="intro"></div>
+<div class="ui_p">
+    <form class="ui">
+        <div>
+            <input name="g" type="radio" value="floor" id="r1"></input>
+            <label for="r1">
+                <img offset="0 0" /><br />
+                Floor
+            </label>
+            <input name="g" type="radio" value="freeze" id="r2">
+            <label for="r2">
+                <img offset="192 64" /><br />
+                Freeze TDS&copy;
+            </label>
+            <input name="g" type="radio" value="shock" id="r3"></input>
+            <label for="r3">
+                <img offset="320 64" /><br />
+                Shock TDS&copy;
+            </label>
+            <input name="g" type="radio" value="alarm" id="r4"></input>
+            <label for="r4">
+                <img offset="256 64" /><br />
+                Alarm TDS&copy;
+            </label>
+        </div>
+    </form>
+</div>
 <script src="mjs.js"></script>
 <script src="util.js"></script>
+<script src="flowmap.js"></script>
 <script src="util_gl.js"></script>
 <script src="game_pcg.js"></script>
 <script src="game_data.js"></script>

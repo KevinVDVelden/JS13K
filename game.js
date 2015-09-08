@@ -9,7 +9,6 @@
 
 /**@const */ TILE_WIDTH = 1;
 /**@const */ TILE_HEIGHT = 0.5;
-/**@const */ MAP_SIZE = 128;
 
 /**@const */ TILESPERMS = 0.012;
 
@@ -51,6 +50,7 @@ for ( var i = 0; i < 64; i++ ) {
     var y = ( ( i/8 )|0 );
     uv[i] = [ x*0.125+EPSILON, y*0.125+EPSILON, x*0.125-EPSILON+0.125, y*0.125-EPSILON+0.125 ];
 }
+uv[2] = uv[0];
 
 window.addEventListener('keyup', function(event) { lastKeys[event.keyCode]=keys[event.keyCode]; keys[event.keyCode] = -scene.time; }, false);
 window.addEventListener('keydown', function(event) { lastKeys[event.keyCode]=keys[event.keyCode]; keys[event.keyCode] = scene.time; }, false);
@@ -64,50 +64,60 @@ function mouse(event) {
     v = [ event.pageX / window.innerWidth * 2 - 1, event.pageY / window.innerHeight * -2 + 1, 1, 1 ];
     v = M4x4.multV( scene.viewInv, v );
 
-    v[0] = -v[0];
-
     x = ( ( v[0] / TILE_WIDTH ) + ( v[1] / TILE_HEIGHT ) );
     y = ( ( v[1] / TILE_HEIGHT ) - ( v[0] / TILE_WIDTH ) );
 
     x = Math.round(x);
     y = Math.round(y);
+    document.title = x + ', ' + y + ', ' + scene.gameMap[x+y*MAP_SIZE];
 
     scene.onTile( x, y, event );
 };
-window.addEventListener('mousemove', mouse);
-window.addEventListener('mousedown', mouse);
+canvas.addEventListener('mousemove', mouse);
+canvas.addEventListener('mousedown', mouse);
 
+function updateImages() {
+    var canvas = document.body.children[2];
+    var smallCtx = canvas.getContext('2d');
+
+    var imgs = document.getElementsByTagName('img');
+    for ( var i = 0; i < imgs.length; i++ ) {
+        var img = imgs[i];
+        img.style.width='64px';
+        img.style.height='64px';
+
+        var off = img.attributes.offset.value.split(' ');
+        smallCtx.clearRect(0,0,64,64);
+        smallCtx.drawImage( cv, off[0], off[1], 64, 64, 0, 0, 64, 64 );
+
+        img.src=canvas.toDataURL();
+    }
+    smallCtx.drawImage( cv, 448, 0, 64, 64, 0, 0, 64, 64 );
+
+    document.body.children[3].style.backgroundImage='url("'+canvas.toDataURL()+'")';
+    document.body.children[3].style['backgroundSize'] = '30% 100%';
+
+    smallCtx.drawImage( cv, 448, 0, 64, 64, 0, 0, 64, 64 );
+    //smallCtx.drawImage( cv, 384, 0, 64, 52, 0, 0, 64, 64 );
+
+    document.body.children[4].children[0].style.backgroundImage='url("'+canvas.toDataURL()+'")';
+    document.body.children[4].children[0].style['backgroundSize'] = '64px 100%';
+}
 function setScene(name) {
     document.body.children[3].innerHTML = data[name];
-    if ( name == 'intro.html' ) {
-        var canvas = document.body.children[2];
-        var smallCtx = canvas.getContext('2d');
 
-        var imgs = document.getElementsByTagName('img');
-        for ( var i = 0; i < imgs.length; i++ ) {
-            var img = imgs[i];
-            img.style.width='64px';
-            img.style.height='64px';
-
-            var off = img.attributes.offset.value.split(' ');
-            smallCtx.clearRect(0,0,64,64);
-            smallCtx.drawImage( cv, off[0], off[1], 64, 64, 0, 0, 64, 64 );
-
-            img.src=canvas.toDataURL();
-        }
-        smallCtx.drawImage( cv, 448, 0, 64, 64, 0, 0, 64, 64 );
-
-        document.body.children[3].style.backgroundImage='url("'+canvas.toDataURL()+'")';
-        document.body.children[3].style['backgroundSize']='30% 100%';
-    }
+    updateImages();
 }
 window['setScene']=setScene;
 function startGame(settings) {
+    updateImages();
     game.settings = settings;
     scene.next = game;
     document.body.children[3].style.display = 'none';
 }
 window['startGame']=startGame;
+
+setTimeout( 'startGame([])', 1000 );
 
 scene.render = function( time ) {
     if ( loadingStage > 50 ) {
@@ -427,6 +437,20 @@ game = bindRecursive({
                 continue; //Ensure not too many exits
             }
 
+            this.verify = function() {
+                var map = new Flowmap( scene.gameMap );
+                map.addTarget( 64 + entranceX * 6, 64 + entranceY * 6 );
+
+                for ( var x = -2; x < 3; x++ ) {
+                    for ( var y = -2; y < 3; y++ ) {
+                        if ( x == entranceX && y == entranceY ) continue;
+                        console.log( 64 + x * 6, 64 + y * 6 );
+                        if ( !map.directionFrom( 64 + x * 6, 64 + y * 6 ) ) return false;
+                    }
+                }
+                return true;
+            }
+
             break;
         }
         this.updateBuffer();
@@ -540,4 +564,30 @@ game = bindRecursive({
         draw( this.wallBuffer );
         if ( this.entBuffer ) draw( this.entBuffer );
     },
+
+    onTile:function( x, y, e ) {
+        if ( e.type == 'mousedown' ) {
+            inputs = document.getElementsByTagName( 'input' );
+            selected = '';
+            for ( var i = 0; i < inputs.length; i++ ) {
+                if ( inputs[i].checked ) {
+                    selected = inputs[i].value;
+                    break;
+                }
+            }
+
+            var tileI = x + y * MAP_SIZE;
+            var t;
+            switch ( selected ) {
+                case 'floor':
+                    t = scene.gameMap[ tileI ];
+                    //console.log( x, y, tileI, t );
+                    scene.gameMap[ tileI ] = ( t == 2 ) ? 3 : ( t == 3 ? 2 : t );
+                    break;
+            }
+
+            console.log( this.verify() );
+            this.updateBuffer();
+        }
+    }
 });

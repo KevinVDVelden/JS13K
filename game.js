@@ -438,7 +438,7 @@ game = bindRecursive({
             }
 
             this.verify = function() {
-                var map = new Flowmap( scene.gameMap );
+                var map = new Flowmap( scene.gameMap, function(w) { return w != 0 && w != 2; } );
                 map.addTarget( 64 + entranceX * 6, 64 + entranceY * 6 );
 
                 for ( var x = -2; x < 3; x++ ) {

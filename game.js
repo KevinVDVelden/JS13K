@@ -295,7 +295,7 @@ requestAnimationFrame(onFrame);
 
 game = bindRecursive({
     camX: 0,
-    camY: MAP_SIZE,
+    camY: MAP_SIZE - 2,
 
     pathTo:function( x, y ) {
         var i = x + MAP_SIZE * y;
@@ -667,7 +667,7 @@ game = bindRecursive({
         gl.viewport(0,0,this.width,this.height);
         this.aspect = window.innerWidth / window.innerHeight;
         this.uniforms = { 'resolution':[ this.width, this.height ], 'aspect':[ 1.0, this.aspect ], 'atlas': 0 };
-        this.perspective = M4x4.makeOrtho( -10, 10, -10/this.aspect, 10/this.aspect, 0.1, 100.0 );
+        this.perspective = M4x4.makeOrtho( -14, 14, -14/this.aspect, 14/this.aspect, 0.1, 100.0 );
         this.perspectiveInv = M4x4.inverse( this.perspective );
 
         this.rotMatrix = M4x4.makeRotate( Math.PI/180*60, [1,0,0] );

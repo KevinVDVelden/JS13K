@@ -40,7 +40,6 @@ shaders[BACKGROUND_SHADER]=function(){return [[getAjax('bg.fs'),gl.FRAGMENT_SHAD
 var TILE_SHADER=1;
 shaders[TILE_SHADER]=function(){return [[getAjax('tiles.fs'),gl.FRAGMENT_SHADER],[getAjax('tiles.vs'),gl.VERTEX_SHADER]];}
 
-/**@const */ TILE_FLOOR = 0;
 /**@const */ TILE_WALL = 6;
 
 uv = [];
@@ -62,6 +61,14 @@ function setDisplay( newDisplay ) {
     }
 }
 
+function fillThieves(t) {
+    return t.replace(
+            '$CAUGHT_THIEVES', ThievesCaught ).replace(
+            '$THIEF_VALUE', ((ThievesCaughtLooted*100)|0)/100 ).replace(
+            '$ESCAPED_THIEVES', ThievesEscaped ).replace(
+            '$ESCAPED_VALUE', ((ThievesEscapedLooted*100)|0)/100 );
+}
+
 window.addEventListener('keyup', function(event) { lastKeys[event.keyCode]=keys[event.keyCode]; keys[event.keyCode] = -scene.time; }, false);
 window.addEventListener('keydown', function(event) { lastKeys[event.keyCode]=keys[event.keyCode]; keys[event.keyCode] = scene.time; }, false);
 function mouse(event) {
@@ -79,7 +86,6 @@ function mouse(event) {
 
     x = Math.round(x);
     y = Math.round(y);
-    document.title = x + ', ' + y + ', ' + scene.gameMap[x+y*MAP_SIZE];
 
     scene.onTile( x, y, event );
 };
@@ -117,6 +123,7 @@ function updateImages() {
 }
 function setScene(name) {
     document.body.children[3].innerHTML = data[name];
+    document.body.children[3].style.display = 'block';
 
     updateImages();
 }
@@ -143,6 +150,8 @@ scene.render = function( time ) {
             getAjax( 'intro.html' );
             getAjax( 'menu.html' );
             getAjax( 'about.html' );
+            getAjax( 'gameover.html' );
+            getAjax( 'top.html' );
         } break;
         case 1: {
             if ( loadingCount == 0 ) {
@@ -290,7 +299,7 @@ game = bindRecursive({
 
     pathTo:function( x, y ) {
         var i = x + MAP_SIZE * y;
-        if ( !this.flowmap[i] || true ) {
+        if ( !this.flowmap[i] ) {
             this.flowmap[i] = new Flowmap( scene.gameMap, function(w) { return !!w && w != 4; } );
             this.flowmap[i].addTarget( x, y );
         }
@@ -622,6 +631,30 @@ game = bindRecursive({
             }
         }
         this.entBuffer = getArrayBuf( this.entBuffer, entBuffer );
+
+        function gameIsOver() {
+            var ents = scene.entsOfType(TYPE_LOOT);
+            for ( var i in ents ) {
+                if ( ents[i][ENTITY_ATTRIBUTE][STAT_LOOT_VALUE] > 1 ) return false;
+            }
+
+            ents = scene.entsOfType( TYPE_THIEF );
+            for ( var i in ents ) {
+                for ( var t in ent[ENTITY_TAGS][TAG_LOOTED] ) {
+                    console.log( i, t, ent[ENTITY_TAGS][TAG_LOOTED][t] );
+                    if ( ent[ENTITY_TAGS][TAG_LOOTED][t] > 0 ) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        if ( !data['gameover'] && gameIsOver() ) {
+            data['gameover'] = fillThieves(data['gameover.html']);
+            setScene( 'gameover' );
+        }
     },
 
     size:function() {
@@ -696,13 +729,13 @@ game = bindRecursive({
                         for ( var i = 0; i < curEnts.length; i++ ) {
                             if ( curEnts[i][ENTITY_TAGS][TAG_ENT_TYPE] == TRAP_BASES[selected][ENTITY_BASE_TAGS][TAG_ENT_TYPE] ) {
                                 this.removeEntity( curEnts[i] );
+                                add = false;
                             } else {
                                 //this.showMessage( "Can't place a trap here! There's already something else placed there." )
                             }
-                            add = false;
-                            break;
                         }
                         if ( add ) {
+                            document.title = ''+ [ tileI, t, curEnts, selected ];
                             scene.addEntity( x, y, TRAP_BASES[selected] );
                         }
                     }

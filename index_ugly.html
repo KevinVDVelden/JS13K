@@ -11,7 +11,7 @@
 <canvas style="display:none;" width="64" height="64"></canvas>
 <div class="intro"></div>
 <div class="ui_b">
-    <form class="ui">
+    <form class="ui uV">
         <div>
             <input name="g" type="radio" value="floor" id="r1"></input>
             <label for="r1">
@@ -33,18 +33,20 @@
                 <img offset="256 64" /><br />
                 Alarm TDS&copy;
             </label>
-            <input name="g" type="radio" value="attrackguard" id="r5"></input>
-            <label for="r5">
-                <img offset="448 256" /><br />
-                Call guard.
+            <input name="g" type="radio" value="sigil" id="r5"></input>
+            <label for="r5" style="display:none" class="bH">
+                <img offset="0 128" /><br />
+                Attract guard.
+            </label>
+            <label class="bV" onclick="scene.start()">
+                <img offset="256 128" /><br />
+                Start game.
             </label>
         </div>
     </form>
 </div>
 <div class="ui_t">
-    <div class="ui">
-        <span>Next thief in: <span id="nT">Inf.</span> seconds.</span>
-        <span>Caught thieves: <span id="cT">Inf.</span></span>
+    <div class="ui uH" id="nT">
     </div>
 </div>
 <script src="ugly.js"></script>

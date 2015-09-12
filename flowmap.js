@@ -44,7 +44,6 @@ Flowmap.prototype.directionFrom = function Flowmap_directionFrom( tX, tY ) {
     var lookQueue = this.lookQueue;
     var lookSet = this.lookSet;
     I = this.I;
-    var targetX = this.targetX; var targetY = this.targetY;
     var weights = this.weights;
     isValid = this.isValid;
 

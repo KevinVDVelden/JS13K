@@ -48,7 +48,7 @@
 /** @const */ ENTITY_BASE_THINK = 2;
 /** @const */ var TILE_ENTRANCE = 1*8+1;
 /** @const */ var TILE_EXIT = 1*8+2;
-/** @const */ var THIEF_BASE =   [ [[0,0,64,-1],[0,0,10,-0.01],[0,0,10,0.001],,[0,0,999,-1]], [TYPE_THIEF,3*8+0,,], [thiefThink] ];
+/** @const */ var THIEF_BASE =   [ [[0,0,64,-1],[0,0,10,-0.01],[0,0,10,0.01],,[0,0,999,-1]], [TYPE_THIEF,3*8+0,,], [thiefThink] ];
 /** @const */ var GUARD_BASE =   [ [,,,,[0,0,999,-1]], [TYPE_GUARD,3*8+4,,], [guardThink] ];
 /** @const */ var ENTRANCE_BASE =[ [[0,0,999999,-1]], [TYPE_ENTRANCE,,TILE_ENTRANCE], [entranceThink] ];
 /** @const */ var EXIT_BASE =    [ [[60,0,60,-1]], [TYPE_EXIT,,1*8+2,,,trapDisableExit], [] ];
@@ -60,11 +60,16 @@
     'sigil2': [ [[120,0,120,-1]], [TYPE_SIGIL,2*8+0], [animate,removeUnfrozen] ],
 };
 /** @const */ var LOOT = {
-    0: [ [,,,[10,0,10,0.01]],             [TYPE_LOOT], [lootUpdate] ],
-    1: [ [,,,[20,0,40,0.01]],             [TYPE_LOOT], [lootUpdate] ],
-    2: [ [,,,[40,0,40,0.01]],             [TYPE_LOOT], [lootUpdate] ],
+    0: [ [,,,[10,0,10,0.0001]],             [TYPE_LOOT], [lootUpdate] ],
+    1: [ [,,,[20,0,40,0.0001]],             [TYPE_LOOT], [lootUpdate] ],
+    2: [ [,,,[40,0,40,0.0001]],             [TYPE_LOOT], [lootUpdate] ],
 };
 /** @const */ var TRAP_NAMES = [ 'Alarm TDS&copy;', 'Freeze TDS&copy;', 'Zap TDS&copy;' ];
+
+ThievesCaught = 0;
+ThievesEscaped = 0;
+ThievesCaughtLooted = 0;
+ThievesEscapedLooted = 0;
 
 function isType( type ) {
     return function( ent ) {
@@ -163,14 +168,30 @@ function moveTo( world, ent, target ) {
 }
 
 
+thiefSpawnCount = 0;
 function entranceThink( world, ent ) {
     if ( ent[ENTITY_ATTRIBUTE][STAT_FROZEN] == 1 ) {
         var newEnt = world.addEntity( ent[0], ent[1], THIEF_BASE );
         newEnt[ENTITY_TAGS][TAG_ICON] += Math.floor( Math.random() * 4 );
-        ent[ENTITY_ATTRIBUTE][STAT_FROZEN] = 30 * 20;
+
+        var waveCount = 1;
+        var count = thiefSpawnCount;
+        while ( count > ( waveCount * 10 ) ) {
+            count -= waveCount * 10;
+            waveCount += 1;
+        }
+
+        if ( count / waveCount == ( ( count / waveCount ) | 0 ) ) {
+            ent[ENTITY_ATTRIBUTE][STAT_FROZEN] = ( 30 * 20 ) - ( 2 * 20 * ( count / waveCount ) );
+        } else {
+            ent[ENTITY_ATTRIBUTE][STAT_FROZEN] = 5 * 20;
+        }
+
+        console.log( count, waveCount, thiefSpawnCount );
+        thiefSpawnCount += 1;
     } else {
         var remaining = ent[ENTITY_ATTRIBUTE][STAT_FROZEN] / 20;
-        document.getElementById('nT').innerHTML = Math.ceil( remaining );
+        document.getElementById('nT').innerHTML = fillThieves(data['top.html']).replace('$SPAWN', Math.ceil( remaining ) );
     }
 }
 function guardThink( world, ent ) {
@@ -181,12 +202,18 @@ function guardThink( world, ent ) {
 
     var ents = world.entsAtPos( ent[ENTITY_X], ent[ENTITY_Y] ).filter( isType( TYPE_THIEF ) );
     for ( var i = 0; i < ents.length; i++ ) {
-        //TODO: Catch thief
         ent[ENTITY_TAGS][TAG_THOUGHT] = 4*8+5;
 
         ents[i][ENTITY_TAGS][TAG_ENT_TYPE] = TYPE_CAUGHT_THIEF;
         ents[i][ENTITY_ATTRIBUTE][STAT_FROZEN] = ents[i][ENTITY_MAX_ATTRIBUTE][STAT_FROZEN][1];
         ents[i][ENTITY_THINK] = [ removeUnfrozen ];
+
+        ThievesCaught += 1;
+        for ( var target in ents[i][ENTITY_TAGS][TAG_LOOTED] ) {
+            ThievesCaughtLooted += ents[i][ENTITY_TAGS][TAG_LOOTED][target];
+            var pos = target.split(',');
+            world.entsAtPos(pos[0]|0,pos[1]|0).filter(isType(TYPE_LOOT))[0][ENTITY_ATTRIBUTE][STAT_LOOT_VALUE] += ents[i][ENTITY_TAGS][TAG_LOOTED][target];
+        }
     }
 
     if ( dir ) {
@@ -256,7 +283,7 @@ function thiefThink( world, ent ) {
                     target = [ lookEnt[ENTITY_X], lookEnt[ENTITY_Y] ]
 
 
-                    if ( ents[i][ENTITY_ATTRIBUTE][STAT_LOOT_VALUE] < 5 ) continue;
+                    if ( ents[i][ENTITY_ATTRIBUTE][STAT_LOOT_VALUE] < 1 ) continue;
                     if ( ent[ENTITY_TAGS][TAG_LOOTED] && ent[ENTITY_TAGS][TAG_LOOTED][target] ) continue;
 
                     targets[targets.length] = target;
@@ -306,7 +333,15 @@ function thiefThink( world, ent ) {
 
             target = ent[ENTITY_TAGS][TAG_LAST_TARGET];
             if ( ent[ENTITY_X] == target[0] && ent[ENTITY_Y] == target[1] ) {
-                world.removeEntity( ent );
+                ent[ENTITY_TAGS][TAG_ENT_TYPE] = TYPE_CAUGHT_THIEF;
+                ent[ENTITY_ATTRIBUTE][STAT_FROZEN] = ent[ENTITY_MAX_ATTRIBUTE][STAT_FROZEN][1];
+                ent[ENTITY_THINK] = [ removeUnfrozen ];
+                ent[ENTITY_TAGS][TAG_THOUGHT] = 4*8+5;
+
+                ThievesEscaped += 1;
+                for ( var target in ent[ENTITY_TAGS][TAG_LOOTED] ) {
+                    ThievesEscapedLooted += ent[ENTITY_TAGS][TAG_LOOTED][target];
+                }
             } else {
                 if ( !moveTo( world, ent, target ) ) {
                     if ( ent[ENTITY_TAGS][TAG_META] == STATE_EMERGENCY_EXIT ) {
@@ -319,7 +354,7 @@ function thiefThink( world, ent ) {
                 }
                 //Add some extra time for teleporting
                 if ( ent[ENTITY_X] == target[0] && ent[ENTITY_Y] == target[1] ) {
-                    ent[ENTITY_ATTRIBUTE][STAT_ACTION_TIME] = 50;
+                    ent[ENTITY_ATTRIBUTE][STAT_ACTION_TIME] = 10;
                 }
             }
         }

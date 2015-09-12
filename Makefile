@@ -8,7 +8,7 @@ TMP_DIRECTORY=tmp
 
 EXTRA_FILES=$(shell find -name \*.fs|grep -v $(ZIP_DIRECTORY))
 EXTRA_FILES+=$(shell find -name \*.vs|grep -v $(ZIP_DIRECTORY))
-EXTRA_FILES+=intro.html about.html menu.html
+EXTRA_FILES+=intro.html about.html menu.html gameover.html top.html
 
 .PHONY: zip dist all info TESTCOMPRESS
 all: $(UGLY_JS_FILES)
@@ -41,7 +41,7 @@ subst_const.sh: consts.sh $(JS_FILES)
 	bash consts.sh
 
 $(UGLY_JS_FILES): $(MINIFIED_JS_FILES)
-	uglifyjs --source-map ugly.map --in-source-map min.map $< -o $@ --screw-ie8 -m sort,toplevel -c unsafe,drop_console
+	uglifyjs --source-map ugly.map --in-source-map min.map $< -o $@ --screw-ie8 -m sort,toplevel -c unsafe,drop_console 2> uglify.log
 
 info: $(ZIP)
 	@echo Minified JS is `cat $(MINIFIED_JS_FILES)|wc -c` bytes.

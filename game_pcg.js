@@ -74,6 +74,8 @@ function renderImages( id, d ) {
             set(i,r,g,b);
         }
     }
+    floorI = 4; //Haaaack
+    floor( 195,195,204, 100,100,100, test2 ); //Disabled porter
     floorI = 8;
     floor( 195,195,204, 103,207,191, test2 ); //Tile entrance
     floor( 195,195,204, 207,103,101, test2 ); //Tile exit

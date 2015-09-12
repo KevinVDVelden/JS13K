@@ -77,6 +77,14 @@ function isType( type ) {
     }
 }
 
+function fadeOut( world, ent ) {
+    var t = ent[ENTITY_ATTRIBUTE][STAT_FROZEN];
+    if ( t == 0 ) {
+        world.removeEntity( ent );
+    } else {
+        ent[ENTITY_TAGS][TAG_ICON_ALPHA] = t/ent[ENTITY_MAX_ATTRIBUTE][STAT_FROZEN][1] * Math.abs( Math.sin( t / 5 ) );
+    }
+}
 function removeUnfrozen( world, ent ) {
     var t = ent[ENTITY_ATTRIBUTE][STAT_FROZEN];
     if ( t == 0 ) {
@@ -333,14 +341,19 @@ function thiefThink( world, ent ) {
 
             target = ent[ENTITY_TAGS][TAG_LAST_TARGET];
             if ( ent[ENTITY_X] == target[0] && ent[ENTITY_Y] == target[1] ) {
-                ent[ENTITY_TAGS][TAG_ENT_TYPE] = TYPE_CAUGHT_THIEF;
-                ent[ENTITY_ATTRIBUTE][STAT_FROZEN] = ent[ENTITY_MAX_ATTRIBUTE][STAT_FROZEN][1];
-                ent[ENTITY_THINK] = [ removeUnfrozen ];
-                ent[ENTITY_TAGS][TAG_THOUGHT] = 4*8+5;
+                var exit = world.entsAtPos( target[0], target[1] ).filter( isType( TYPE_EXIT ) )[0];
+                if ( exit[ENTITY_ATTRIBUTE][STAT_FROZEN] == 0 ) {
+                    ent[ENTITY_ATTRIBUTE][STAT_FROZEN] = ent[ENTITY_MAX_ATTRIBUTE][STAT_FROZEN][1];
+                    exit[ENTITY_ATTRIBUTE][STAT_FROZEN] = ent[ENTITY_MAX_ATTRIBUTE][STAT_FROZEN][1];
 
-                ThievesEscaped += 1;
-                for ( var target in ent[ENTITY_TAGS][TAG_LOOTED] ) {
-                    ThievesEscapedLooted += ent[ENTITY_TAGS][TAG_LOOTED][target];
+                    ent[ENTITY_TAGS][TAG_ENT_TYPE] = TYPE_CAUGHT_THIEF;
+                    ent[ENTITY_THINK] = [ fadeOut ];
+                    ent[ENTITY_TAGS][TAG_THOUGHT] = 4*8+5;
+
+                    ThievesEscaped += 1;
+                    for ( var target in ent[ENTITY_TAGS][TAG_LOOTED] ) {
+                        ThievesEscapedLooted += ent[ENTITY_TAGS][TAG_LOOTED][target];
+                    }
                 }
             } else {
                 if ( !moveTo( world, ent, target ) ) {

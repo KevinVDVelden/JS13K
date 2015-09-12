@@ -11,6 +11,7 @@
 /**@const */ TILE_HEIGHT = 0.5;
 
 /**@const */ TILESPERMS = 0.012;
+/** @const */ TICK_TIME = 50;
 
 canvas = document.body.children[0];
 canvas.width = window.innerWidth;
@@ -50,12 +51,21 @@ for ( var i = 0; i < 64; i++ ) {
     var y = ( ( i/8 )|0 );
     uv[i] = [ x*0.125+EPSILON, y*0.125+EPSILON, x*0.125-EPSILON+0.125, y*0.125-EPSILON+0.125 ];
 }
-uv[2] = uv[0];
+uv[3] = uv[1];
+
+function setDisplay( newDisplay ) {
+    for ( var i = 0; i < newDisplay.length; i+=2 ) {
+        var elements = document.getElementsByClassName(newDisplay[i]);
+        for ( var j = 0; j < elements.length; j++ ) {
+            elements[j].style.display = newDisplay[i+1];
+        }
+    }
+}
 
 window.addEventListener('keyup', function(event) { lastKeys[event.keyCode]=keys[event.keyCode]; keys[event.keyCode] = -scene.time; }, false);
 window.addEventListener('keydown', function(event) { lastKeys[event.keyCode]=keys[event.keyCode]; keys[event.keyCode] = scene.time; }, false);
 function mouse(event) {
-    if ( !scene.onTile ) return;
+    if ( !scene.onTile || !scene.view ) return;
 
     if ( !scene.viewInv ) {
         scene.viewInv = M4x4.inverse( scene.view );
@@ -98,10 +108,12 @@ function updateImages() {
     document.body.children[3].style['backgroundSize'] = '30% 100%';
 
     smallCtx.drawImage( cv, 448, 0, 64, 64, 0, 0, 64, 64 );
-    //smallCtx.drawImage( cv, 384, 0, 64, 52, 0, 0, 64, 64 );
+    var elems = document.getElementsByClassName( 'ui' );
 
-    document.body.children[4].children[0].style.backgroundImage='url("'+canvas.toDataURL()+'")';
-    document.body.children[4].children[0].style['backgroundSize'] = '64px 100%';
+    for ( var i = 0; i < elems.length; i++ ) {
+        elems[i].style.backgroundImage='url("'+canvas.toDataURL()+'")';
+        elems[i].style['backgroundSize'] = '64px 100%';
+    }
 }
 function setScene(name) {
     document.body.children[3].innerHTML = data[name];
@@ -113,11 +125,9 @@ function startGame(settings) {
     updateImages();
     game.settings = settings;
     scene.next = game;
-    document.body.children[3].style.display = 'none';
+    setDisplay( ['uV', 'block', 'intro', 'none'] );
 }
 window['startGame']=startGame;
-
-setTimeout( 'startGame([])', 1000 );
 
 scene.render = function( time ) {
     if ( loadingStage > 50 ) {
@@ -229,6 +239,11 @@ function setSize(scene) {
     if (scene.size) scene.size();
 }
 
+window.onresize = function(event) {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+
 accumelator = 0;
 onFrame = function(t) {
     requestAnimationFrame(onFrame);
@@ -241,13 +256,13 @@ onFrame = function(t) {
 
     scene.render(t);
     accumelator += scene.delta;
-    if ( accumelator > 100 ) {
+    if ( accumelator > TICK_TIME ) {
         if ( scene.tick ) {
             scene.tick();
             tickI += 1;
-            if ( tickI > 1000 ) tickI = 0;
         }
-        accumelator -= 100;
+        accumelator -= TICK_TIME;
+        if ( accumelator > TICK_TIME ) accumelator = 0;
     }
 
     if (scene.next) {
@@ -273,9 +288,21 @@ game = bindRecursive({
     camX: 0,
     camY: MAP_SIZE,
 
+    pathTo:function( x, y ) {
+        var i = x + MAP_SIZE * y;
+        if ( !this.flowmap[i] || true ) {
+            this.flowmap[i] = new Flowmap( scene.gameMap, function(w) { return !!w && w != 4; } );
+            this.flowmap[i].addTarget( x, y );
+        }
+
+        return this.flowmap[i];
+    },
+
     updateBuffer:function() {
         if ( this.gameBuffer )
             gl.deleteBuffer( this.gameBuffer[0] );
+
+        this.flowmap = {};
 
         var gameBuffer = [];
         var wallBuffer = [];
@@ -369,9 +396,23 @@ game = bindRecursive({
         for ( var i in tags ) ent[ENTITY_TAGS][i] = tags[i];
 
         ent[ENTITY_TAGS][TAG_TILE_BASE] = ent[ENTITY_TAGS][TAG_TILE];
+        ent[ENTITY_ID] = this.entities.length;
 
         this.entities[this.entities.length] = ent;
         return ent;
+    },
+
+    entsOfType:function( type ) {
+        var ret = [];
+
+        for ( var i in this.entities ) {
+            var lookEnt = this.entities[i];
+            if ( lookEnt[ENTITY_TAGS][TAG_ENT_TYPE] == type ) {
+                ret[ret.length] = lookEnt;
+            }
+        }
+
+        return ret;
     },
 
     entsAtPos:function( x, y ) {
@@ -383,6 +424,16 @@ game = bindRecursive({
         }
 
         return ret;
+    },
+
+    removeEntity:function( ent ) {
+        var i = this.entities.indexOf( ent );
+        if ( i > -1 ) {
+            ents = this.entities.splice( i, 1 );
+            if ( ents.length && ent[ENTITY_TAGS][TAG_TILE_BASE] ) {
+                this.gameMap[ ent[ENTITY_X] + MAP_SIZE * ent[ENTITY_Y] ] = ent[ENTITY_TAGS][TAG_TILE_LAST_TYPE];
+            }
+        }
     },
 
     init:function() {
@@ -398,7 +449,7 @@ game = bindRecursive({
                     for ( var y = _y-h; y <= _y+h; y++ )
                         gameMap[y*MAP_SIZE+x] = 1;
 
-                scene.addEntity( _x, _y, ent );
+                return scene.addEntity( _x, _y, ent );
             }
 
 
@@ -407,17 +458,38 @@ game = bindRecursive({
 
             for ( var x = 64 - 12; x <= 64 + 12; x++ ) {
                 for ( var y = 64 - 12; y <= 64 + 12; y++ ) {
-                    this.gameMap[ y * MAP_SIZE + x ] = 2;
+                    this.gameMap[ y * MAP_SIZE + x ] = 4;
                 }
             }
+            for ( var x = 64 - 12; x <= 64 + 12; x++ ) {
+                this.gameMap[ x * MAP_SIZE + 64 ] = 3;
+                this.gameMap[ 64 * MAP_SIZE + x ] = 3;
+            }
+            for ( var x = - 6; x <= 12; x++ ) {
+                this.gameMap[ ( 64 + x ) * MAP_SIZE + 64 + 12 ] = 3;
+                this.gameMap[ ( 64 - x ) * MAP_SIZE + 64 - 12 ] = 3;
 
-            entranceX = ( Math.random() * 3 ) | 0 - 1;
-            entranceY = ( Math.random() * 3 ) | 0 - 1;
+                this.gameMap[ ( 64 - 12 ) * MAP_SIZE + 64 + x ] = 3;
+                this.gameMap[ ( 64 + 12 ) * MAP_SIZE + 64 - x ] = 3;
+            }
+
+            entranceX = 0;
+            entranceY = 0;
 
             addRoom( 64 + entranceX * 6, 64 + entranceY * 6, 2, 2, ENTRANCE_BASE );
+            function addGuard( x, y ) {
+                var ent = addRoom( 64+x, 64+y, 1, 1, GUARD_BASE );
+                ent[ENTITY_TAGS][TAG_ICON] += ( Math.random() * 4 ) | 0;
+                ent[ENTITY_TAGS][TAG_META] = [ 64+x, 64+y ];
+            }
+            addGuard( -12, -12 );
+            addGuard( +12, -12 );
+            addGuard( -12, +12 );
+            addGuard( +12, +12 );
 
             for ( var x = -2; x < 3; x++ ) {
                 for ( var y = -2; y < 3; y++ ) {
+                    if ( Math.abs(x) == Math.abs(y) ) continue;
                     if ( x == entranceX && y == entranceY ) continue;
 
                     var i = Math.floor( Math.random() * roomTypes.length );
@@ -444,7 +516,6 @@ game = bindRecursive({
                 for ( var x = -2; x < 3; x++ ) {
                     for ( var y = -2; y < 3; y++ ) {
                         if ( x == entranceX && y == entranceY ) continue;
-                        console.log( 64 + x * 6, 64 + y * 6 );
                         if ( !map.directionFrom( 64 + x * 6, 64 + y * 6 ) ) return false;
                     }
                 }
@@ -458,6 +529,20 @@ game = bindRecursive({
 
     tick:function() {
         var mapDirty = false;
+        var thiefMap = new Flowmap( scene.gameMap, function(w) { return !!w && w != 4; } );
+        this.thiefMap = thiefMap;
+
+        function fillMap( type, weight ) {
+            var entities = scene.entsOfType( type );
+            for ( var i = 0; i < entities.length; i++ ) {
+                thiefMap.addTarget( entities[i][ENTITY_X], entities[i][ENTITY_Y], weight );
+            }
+        }
+        fillMap( TYPE_THIEF, 15 );
+        var thiefMap = new Flowmap( scene.gameMap, function(w) { return !!w && w != 4; } );
+        this.sigilMap = thiefMap;
+        fillMap( TYPE_SIGIL, 35 );
+
         for ( var i = 0; i < this.entities.length; i++ ) {
             var ent = this.entities[i];
 
@@ -468,6 +553,7 @@ game = bindRecursive({
             if ( ent[ENTITY_TAGS][TAG_TILE] ) {
                 var I = ent[ENTITY_Y] * MAP_SIZE + ent[ENTITY_X];
                 if ( this.gameMap[I] != ent[ENTITY_TAGS][TAG_TILE] ) {
+                    if ( ! ent[ENTITY_TAGS][TAG_TILE_LAST_TYPE] ) ent[ENTITY_TAGS][TAG_TILE_LAST_TYPE] = this.gameMap[I];
                     this.gameMap[I] = ent[ENTITY_TAGS][TAG_TILE];
                     mapDirty = true;
                 }
@@ -477,10 +563,10 @@ game = bindRecursive({
             var ent = this.entities[i];
 
             for ( var attrI in ent[ENTITY_ATTRIBUTE] ) {
-                ent[ENTITY_ATTRIBUTE][attrI] = Math.min(
+                ent[ENTITY_ATTRIBUTE][attrI] = clamp(
+                        ent[ENTITY_MAX_ATTRIBUTE][attrI][0],
                         ent[ENTITY_MAX_ATTRIBUTE][attrI][1],
-                        Math.max( ent[ENTITY_MAX_ATTRIBUTE][attrI][0],
-                            ent[ENTITY_ATTRIBUTE][attrI] + ent[ENTITY_CHANGE_ATTRIBUTE][attrI] ) );
+                        ent[ENTITY_ATTRIBUTE][attrI] + ent[ENTITY_CHANGE_ATTRIBUTE][attrI] );
 
             }
         }
@@ -496,6 +582,7 @@ game = bindRecursive({
                 var _x = ( x - y ) * 0.5;
                 var _y = ( x + y ) * 0.25;
                 _uv = uv[ _uv ];
+                if ( alpha > 1 ) alpha = 1;
 
                 entBuffer = entBuffer.concat( [
                         _x - 0.45, _y - 0.45, 0, _uv[0], _uv[3], alpha, //A
@@ -509,13 +596,29 @@ game = bindRecursive({
             }
 
             if ( ent[ENTITY_TAGS][TAG_ICON] ) {
-                add( ent[0], ent[1] + 0.2, ent[ENTITY_TAGS][TAG_ICON], 1 );
+                var a = ent[ENTITY_TAGS][TAG_ICON_ALPHA];
+                if ( !a ) a = 1;
+                add( ent[0] + 0.2, ent[1] + 0.2, ent[ENTITY_TAGS][TAG_ICON], a );
             }
             if ( ent[ENTITY_TAGS][TAG_TILE_ICON] > 0 ) {
                 add( ent[0], ent[1], ent[ENTITY_TAGS][TAG_TILE_ICON], 1 );
             }
             if ( ent[ENTITY_TAGS][TAG_THOUGHT] > 0 ) {
                 add( ent[0]+1.8, ent[1]+0.8, ent[ENTITY_TAGS][TAG_THOUGHT], ent[ENTITY_TAGS][TAG_THOUGHT_ALPHA] );
+            }
+            if ( ent[ENTITY_TAGS][TAG_ISO_IMAGE] > 0 ) {
+                var _x = ( ent[0] - ent[1] ) * 0.5;
+                var _y = ( ent[0] + ent[1] ) * 0.25;
+                _uv = uv[ent[ENTITY_TAGS][TAG_ISO_IMAGE]];
+                entBuffer = entBuffer.concat( [
+                        _x-0.5,  _y,      0,  _uv[0], _uv[3], 1, //B
+                        _x,      _y+0.25, 0,  _uv[2], _uv[3], 1, //A
+                        _x+0.5,  _y,      0,  _uv[2], _uv[1], 1, //C
+
+                        _x+0.5,  _y,      0,  _uv[2], _uv[1], 1, //C
+                        _x,      _y-0.25, 0,  _uv[0], _uv[1], 1, //D
+                        _x-0.5,  _y,      0,  _uv[0], _uv[3], 1, //B
+                ] );
             }
         }
         this.entBuffer = getArrayBuf( this.entBuffer, entBuffer );
@@ -544,8 +647,8 @@ game = bindRecursive({
             this.camX += deltaX * this.delta * TILESPERMS;
             this.camY += deltaY * this.delta * TILESPERMS;
 
-            this.camY = Math.min( 160, Math.max( 100, this.camY ) );
-            this.camX = Math.min( 10, Math.max( -10, this.camX ) );
+            this.camY = clamp( 100, 160, this.camY );
+            this.camX = clamp( -10, 10, this.camX );
         }
 
         this.view = M4x4.translate3(-this.camX,-this.camY/4,-10, this.perspective );
@@ -577,17 +680,44 @@ game = bindRecursive({
             }
 
             var tileI = x + y * MAP_SIZE;
-            var t;
+            var t = scene.gameMap[ tileI ];;
+            var curEnts = this.entsAtPos( x, y );
             switch ( selected ) {
                 case 'floor':
-                    t = scene.gameMap[ tileI ];
-                    //console.log( x, y, tileI, t );
-                    scene.gameMap[ tileI ] = ( t == 2 ) ? 3 : ( t == 3 ? 2 : t );
+                    console.log( x, y, tileI, t );
+                    scene.gameMap[ tileI ] = ( t == 4 ) ? 3 : ( ( t == 3 ) ? 4 : t );
+                    break;
+                case 'freeze':
+                case 'shock':
+                case 'alarm':
+                case 'sigil':
+                    if ( t && t != TILE_EXIT && t != TILE_ENTRANCE ) {
+                        var add = true;
+                        for ( var i = 0; i < curEnts.length; i++ ) {
+                            if ( curEnts[i][ENTITY_TAGS][TAG_ENT_TYPE] == TRAP_BASES[selected][ENTITY_BASE_TAGS][TAG_ENT_TYPE] ) {
+                                this.removeEntity( curEnts[i] );
+                            } else {
+                                //this.showMessage( "Can't place a trap here! There's already something else placed there." )
+                            }
+                            add = false;
+                            break;
+                        }
+                        if ( add ) {
+                            scene.addEntity( x, y, TRAP_BASES[selected] );
+                        }
+                    }
                     break;
             }
 
-            console.log( this.verify() );
             this.updateBuffer();
         }
-    }
+    },
+
+    start:function() {
+        var curEnts = scene.entsOfType( TYPE_ENTRANCE );
+        for ( var i = 0; i < curEnts.length; i++ ) {
+            curEnts[i][ENTITY_ATTRIBUTE][STAT_FROZEN] = 5 * 20;
+        }
+        setDisplay( [ 'bV', 'none', 'bH', 'inline-block', 'uH', 'block' ] );
+    },
 });

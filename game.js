@@ -64,9 +64,9 @@ function setDisplay( newDisplay ) {
 function fillThieves(t) {
     return t.replace(
             '$CAUGHT_THIEVES', ThievesCaught ).replace(
-            '$THIEF_VALUE', ((ThievesCaughtLooted*100)|0)/100 ).replace(
+            '$THIEF_VALUE', (ThievesCaughtLooted|0) ).replace(
             '$ESCAPED_THIEVES', ThievesEscaped ).replace(
-            '$ESCAPED_VALUE', ((ThievesEscapedLooted*100)|0)/100 );
+            '$ESCAPED_VALUE', (ThievesEscapedLooted|0) );
 }
 
 window.addEventListener('keyup', function(event) { lastKeys[event.keyCode]=keys[event.keyCode]; keys[event.keyCode] = -scene.time; }, false);
@@ -633,27 +633,33 @@ game = bindRecursive({
         this.entBuffer = getArrayBuf( this.entBuffer, entBuffer );
 
         function gameIsOver() {
-            var ents = scene.entsOfType(TYPE_LOOT);
-            for ( var i in ents ) {
-                if ( ents[i][ENTITY_ATTRIBUTE][STAT_LOOT_VALUE] > 1 ) return false;
-            }
-
-            ents = scene.entsOfType( TYPE_THIEF );
+            var ents = scene.entsOfType( TYPE_THIEF );
+            var sum = 0;
             for ( var i in ents ) {
                 for ( var t in ent[ENTITY_TAGS][TAG_LOOTED] ) {
                     console.log( i, t, ent[ENTITY_TAGS][TAG_LOOTED][t] );
-                    if ( ent[ENTITY_TAGS][TAG_LOOTED][t] > 0 ) {
-                        return false;
-                    }
+                    sum += ent[ENTITY_TAGS][TAG_LOOTED][t];
                 }
             }
 
-            return true;
+            ents = scene.entsOfType(TYPE_LOOT);
+            for ( var i in ents ) {
+                sum += ents[i][ENTITY_ATTRIBUTE][STAT_LOOT_VALUE];
+            }
+
+            console.log( sum, sum - ents.length );
+
+            return sum < ents.length;
         }
 
         if ( !data['gameover'] && gameIsOver() ) {
-            data['gameover'] = fillThieves(data['gameover.html']);
-            setScene( 'gameover' );
+            setTimeout(function(){
+                if ( data['gameover'] ) return;
+                if ( !gameIsOver() ) return;
+
+                data['gameover'] = fillThieves(data['gameover.html']);
+                setScene( 'gameover' );
+            }, 250);
         }
     },
 

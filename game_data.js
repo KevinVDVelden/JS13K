@@ -51,7 +51,7 @@
 /** @const */ var THIEF_BASE =   [ [[0,0,64,-1],[0,0,10,-0.01],[0,0,10,0.01],,[0,0,999,-1]], [TYPE_THIEF,3*8+0,,], [thiefThink] ];
 /** @const */ var GUARD_BASE =   [ [,,,,[0,0,999,-1]], [TYPE_GUARD,3*8+4,,], [guardThink] ];
 /** @const */ var ENTRANCE_BASE =[ [[0,0,999999,-1]], [TYPE_ENTRANCE,,TILE_ENTRANCE], [entranceThink] ];
-/** @const */ var EXIT_BASE =    [ [[60,0,60,-1]], [TYPE_EXIT,,1*8+2,,,trapDisableExit], [] ];
+/** @const */ var EXIT_BASE =    [ [[0,0,60,-1]], [TYPE_EXIT,,1*8+2,,,trapDisableExit], [tpThink] ];
 /** @const */ var TRAP_BASES = { 
     'alarm': [ [[10,0,40,-1]], [TYPE_TRAP,,1*8+5,,,trapTriggerNeighbours], [trapThink] ],
     'freeze': [ [[10,0,60,-1]], [TYPE_TRAP,,1*8+4,,,trapFreeze], [trapThink] ],
@@ -60,9 +60,9 @@
     'sigil2': [ [[120,0,120,-1]], [TYPE_SIGIL,2*8+0], [animate,removeUnfrozen] ],
 };
 /** @const */ var LOOT = {
-    0: [ [,,,[10,0,10,0.0001]],             [TYPE_LOOT], [lootUpdate] ],
-    1: [ [,,,[20,0,40,0.0001]],             [TYPE_LOOT], [lootUpdate] ],
-    2: [ [,,,[40,0,40,0.0001]],             [TYPE_LOOT], [lootUpdate] ],
+    0: [ [,,,[10,0,10,0.0003]],             [TYPE_LOOT], [lootUpdate] ],
+    1: [ [,,,[20,0,20,0.0003]],             [TYPE_LOOT], [lootUpdate] ],
+    2: [ [,,,[40,0,40,0.0003]],             [TYPE_LOOT], [lootUpdate] ],
 };
 /** @const */ var TRAP_NAMES = [ 'Alarm TDS&copy;', 'Freeze TDS&copy;', 'Zap TDS&copy;' ];
 
@@ -75,6 +75,11 @@ function isType( type ) {
     return function( ent ) {
         return ent[ENTITY_TAGS][TAG_ENT_TYPE] == type;
     }
+}
+
+function tpThink( world, ent ) {
+    var frozen = ent[ENTITY_ATTRIBUTE][STAT_FROZEN];
+    ent[ENTITY_TAGS][TAG_TILE] = frozen > 10 ? (5) : ( frozen > 5 ? (1*8+3) : ent[ENTITY_TAGS][TAG_TILE_BASE] );
 }
 
 function fadeOut( world, ent ) {

@@ -61,9 +61,10 @@ function renderImages( id, d ) {
         put( floorI );
         floorI += 1;
     }
+    floor( 195,195,204, 143,147,151, test );
+    floorI += 1;
     floor( 195,195,204, 173,177,181, test );
 
-    floorI += 2;
     floorCrossWidth = 3;
     floorSquareDistance = 16;
     function test2(x,y,i,r,g,b) {
@@ -204,6 +205,31 @@ function renderImages( id, d ) {
         ctx.fillText( text, ( _t*64+28 - texts[t+2] ) / texts[t+1], ( 4*64+29 ) / texts[t+1] );
         ctx.fillText( text, ( _t*64+29 - texts[t+2] ) / texts[t+1], ( 4*64+29 ) / texts[t+1] );
         ctx.restore();
+    }
+
+    //Flag
+    var flags = [ [200,30,20,0], [200,30,20,Math.PI*0.5], [200,30,20,Math.PI*1], [200,30,20,Math.PI*1.5], [30,160,20,0] ];
+    for ( var flagI = 0; flagI < flags.length; flagI++ ) {
+        runImage( function( x, y, i ) {
+            var t = ( x + ( y / 5 ) );
+            var _y = Math.sin( t * 0.5 + flags[flagI][3] ) * 3;
+            if ( y+_y > 15 && y+_y < 35 && t > 25 && t < 55 ) {
+                t = _y + y * 0.2;
+
+                set( i, t*10+flags[flagI][0], t*10+flags[flagI][1], t*10+flags[flagI][2] );
+                addNoise( i, 15 );
+            }
+
+            t = 3 - Math.abs( x - ( 25 - y / 5 ) );
+            if ( t >= 0 && y > 10 && y < 54 ) {
+                if ( y < 13 ) t = 13 - y;
+                if ( y > 51 ) t = y - 51;
+                t= 20 + t * 30;
+                set( i, t,t,t );
+            }
+            addNoise( i, 15 );
+        } );
+        put( 2 * 8 + flagI );
     }
 
     //Loot

@@ -19,7 +19,12 @@ body {
 .intro * {
     color: white;
 }
-.ui_p {
+.ui_t {
+    position: absolute;
+    width: 100%;
+    top: 0;
+}
+.ui_b {
     position: absolute;
     width: 100%;
     bottom: 0;
@@ -28,13 +33,14 @@ body {
     margin: 0 auto;
     background: white;
     border-radius: 6px;
-    width: 398px;
+    width: 493px;
+    display: none;
 }
 .ui div {
     margin: 0 auto;
-    width: 380px;
+    width: 476px;
 }
-.ui label {
+.ui_b label {
     text-align: center;
     color: black;
     height: 90px;
@@ -52,6 +58,9 @@ body {
 input[type="radio"]:checked+label {
     background: rgba( 0, 255, 255, 0.3 );
 }
+.ui_t .ui > span {
+    display: block;
+}
 </style>
 </head>
 <body>
@@ -59,13 +68,13 @@ input[type="radio"]:checked+label {
 <canvas class="p" width="512" height="512"></canvas>
 <canvas class="p" width="64" height="64"></canvas>
 <div class="intro"></div>
-<div class="ui_p">
-    <form class="ui">
+<div class="ui_b">
+    <form class="ui uV">
         <div>
             <input name="g" type="radio" value="floor" id="r1"></input>
             <label for="r1">
-                <img offset="0 0" /><br />
-                Floor
+                <img offset="128 0" /><br />
+                Toggle Floor
             </label>
             <input name="g" type="radio" value="freeze" id="r2">
             <label for="r2">
@@ -82,8 +91,23 @@ input[type="radio"]:checked+label {
                 <img offset="256 64" /><br />
                 Alarm TDS&copy;
             </label>
+            <input name="g" type="radio" value="sigil" id="r5"></input>
+            <label for="r5" style="display:none" class="bH">
+                <img offset="0 128" /><br />
+                Attract guard.
+            </label>
+            <label class="bV" onclick="scene.start()">
+                <img offset="256 128" /><br />
+                Start game.
+            </label>
         </div>
     </form>
+</div>
+<div class="ui_t">
+    <div class="ui uH">
+        <span>Next thief in: <span id="nT">Inf.</span> seconds.</span>
+        <span>Caught thieves: <span id="cT">Inf.</span></span>
+    </div>
 </div>
 <script src="mjs.js"></script>
 <script src="util.js"></script>

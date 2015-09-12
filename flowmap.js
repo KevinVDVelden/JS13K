@@ -1,6 +1,7 @@
 /**@const */ var MAP_SIZE = 128;
 
 var Flowmap_Dirs = [-1,1,MAP_SIZE,-MAP_SIZE];
+var Flowmap_Dirs_Off = [ [-1,0], [1,0], [0,1], [0,-1] ];
 function XY( i ) {
     return [ i % MAP_SIZE, ( i / MAP_SIZE ) | 0 ];
 }
@@ -16,9 +17,10 @@ Flowmap = function( weights, isValid ) {
     this.map = [];
     this.map[MAP_SIZE*MAP_SIZE+1]=0;
 }
-Flowmap.prototype.addTarget = function( x, y ) {
+Flowmap.prototype.addTarget = function( x, y, val ) {
+    if ( ! val ) val = 99999;
     var i = x+y*MAP_SIZE;
-    this.lookQueue[this.lookQueue.length] = [ i, x, y, 99999, 0 ];
+    this.lookQueue[this.lookQueue.length] = [ i, x, y, val, 0 ];
     this.lookSet[i] = true;
 }
 Flowmap.prototype.bestNeighbour = function Flowmap_bestNeighbour( i ) {
@@ -33,7 +35,7 @@ Flowmap.prototype.bestNeighbour = function Flowmap_bestNeighbour( i ) {
         }
     }
 
-    return i + Flowmap_Dirs[closeI];
+    return Flowmap_Dirs_Off[closeI];
 }
     
 Flowmap.prototype.directionFrom = function Flowmap_directionFrom( tX, tY ) {

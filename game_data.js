@@ -57,7 +57,7 @@
     'freeze': [ [[10,0,60,-1]], [TYPE_TRAP,,1*8+4,,,trapFreeze], [trapThink] ],
     'shock': [ [[10,0,70,-1]], [TYPE_TRAP,,1*8+6,,,trapZap], [trapThink] ],
     'sigil': [ [[60,0,60,-1]], [TYPE_SIGIL,2*8+0], [animate,removeUnfrozen] ],
-    'sigil2': [ [[120,0,120,-1]], [TYPE_SIGIL,2*8+0], [animate,removeUnfrozen] ],
+    'sigil2': [ [[30,0,30,-1]], [TYPE_SIGIL,2*8+0], [animate,removeUnfrozen] ],
 };
 /** @const */ var LOOT = {
     0: [ [,,,[10,0,10,0.0003]],             [TYPE_LOOT], [lootUpdate] ],

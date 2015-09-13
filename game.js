@@ -550,7 +550,7 @@ game = bindRecursive({
         fillMap( TYPE_THIEF, 15 );
         var thiefMap = new Flowmap( scene.gameMap, function(w) { return !!w && w != 4; } );
         this.sigilMap = thiefMap;
-        fillMap( TYPE_SIGIL, 35 );
+        fillMap( TYPE_SIGIL, 25 );
 
         for ( var i = 0; i < this.entities.length; i++ ) {
             var ent = this.entities[i];
